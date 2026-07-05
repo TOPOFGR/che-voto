@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
+import { mensajeAuthError } from "@/lib/auth/errores";
 
 export interface ResetState {
   error?: string;
@@ -23,9 +24,10 @@ export async function restablecerPassword(
   const { error } = await auth.resetPassword({ newPassword: password, token });
   if (error) {
     return {
-      error:
-        error.message ||
+      error: mensajeAuthError(
+        error,
         "El enlace venció o no es válido. Pedí uno nuevo desde “Recuperar contraseña”.",
+      ),
     };
   }
   redirect("/auth/sign-in?reset=1");

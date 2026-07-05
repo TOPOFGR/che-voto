@@ -185,50 +185,81 @@ export async function getHeatmapPoints(
 
 export interface DashboardStats {
   total: number;
-  garantizados: number;
-  simpatizantes: number;
+  habilitados: number;
+  /** Habilitados con intención por el partido del usuario; para el admin es el total. */
+  intencion: number;
   con_ubicacion: number;
-  por_etapa: { etapa: EtapaEmbudo; n: number }[];
-  por_intencion: { intencion: IntencionVoto; n: number }[];
+  por_intencion_partido: { intencion_partido: IntencionPartido; n: number }[];
 }
 
+/**
+ * El dashboard solo muestra lo que realmente se captura en el alta:
+ * habilitación (padrón) e intención de voto por partido. La etapa del embudo
+ * y la intención de relación no se cargan hoy, así que no se reportan.
+ */
 export async function getDashboardStats(
   usuario: Usuario,
 ): Promise<DashboardStats> {
   const scopeCtx = await getScope(usuario);
   const scope = scopeCondition(usuario, scopeCtx);
   const [totals] = await sql<
-    { total: number; garantizados: number; simpatizantes: number; con_ubicacion: number }[]
+    { total: number; habilitados: number; con_ubicacion: number }[]
   >`
     SELECT count(*)::int AS total,
-           count(*) FILTER (WHERE v.etapa = 'garantizado')::int AS garantizados,
-           count(*) FILTER (WHERE v.etapa = 'simpatizante')::int AS simpatizantes,
+           count(*) FILTER (WHERE p.habilitado IS TRUE)::int AS habilitados,
            count(*) FILTER (WHERE p.ubicacion IS NOT NULL)::int AS con_ubicacion
     FROM personas p
     LEFT JOIN vinculos_campania v ON v.persona_id = p.id AND v.campaign_id = p.campaign_id
     WHERE ${scope}
   `;
-  const porEtapa = await sql<{ etapa: EtapaEmbudo; n: number }[]>`
-    SELECT v.etapa, count(*)::int AS n
+
+  // "Intención": votantes habilitados cuya intención de partido coincide con el
+  // partido del usuario (su lista, sus listas de intendente, o las de su cadena
+  // de superiores). El administrador no pertenece a un partido: ve el total.
+  let intencion = totals?.total ?? 0;
+  if (!ROLES_VISION_TOTAL.includes(usuario.rol)) {
+    const [row] = await sql<{ n: number }[]>`
+      WITH RECURSIVE cadena AS (
+        SELECT id, superior_id, lista_id FROM usuarios
+        WHERE id = ${usuario.id} AND campaign_id = ${usuario.campaign_id}
+        UNION ALL
+        SELECT u.id, u.superior_id, u.lista_id
+        FROM usuarios u JOIN cadena c ON u.id = c.superior_id
+      ),
+      siglas AS (
+        SELECT DISTINCT pa.sigla
+        FROM (
+          SELECT lista_id FROM cadena WHERE lista_id IS NOT NULL
+          UNION
+          SELECT il.lista_id FROM intendente_listas il JOIN cadena c ON il.usuario_id = c.id
+        ) x
+        JOIN listas l ON l.id = x.lista_id
+        JOIN partidos pa ON pa.id = l.partido_id
+      )
+      SELECT count(*)::int AS n
+      FROM personas p
+      JOIN vinculos_campania v ON v.persona_id = p.id AND v.campaign_id = p.campaign_id
+      WHERE ${scope}
+        AND p.habilitado IS TRUE
+        AND v.intencion_partido::text IN (SELECT sigla FROM siglas)
+    `;
+    intencion = row?.n ?? 0;
+  }
+
+  const porIntencionPartido = await sql<{ intencion_partido: IntencionPartido; n: number }[]>`
+    SELECT v.intencion_partido, count(*)::int AS n
     FROM personas p
     JOIN vinculos_campania v ON v.persona_id = p.id AND v.campaign_id = p.campaign_id
-    WHERE ${scope} AND v.etapa IS NOT NULL
-    GROUP BY v.etapa
+    WHERE ${scope}
+    GROUP BY v.intencion_partido
   `;
-  const porIntencion = await sql<{ intencion: IntencionVoto; n: number }[]>`
-    SELECT v.intencion, count(*)::int AS n
-    FROM personas p
-    JOIN vinculos_campania v ON v.persona_id = p.id AND v.campaign_id = p.campaign_id
-    WHERE ${scope} AND v.intencion IS NOT NULL
-    GROUP BY v.intencion
-  `;
+
   return {
     total: totals?.total ?? 0,
-    garantizados: totals?.garantizados ?? 0,
-    simpatizantes: totals?.simpatizantes ?? 0,
+    habilitados: totals?.habilitados ?? 0,
+    intencion,
     con_ubicacion: totals?.con_ubicacion ?? 0,
-    por_etapa: porEtapa,
-    por_intencion: porIntencion,
+    por_intencion_partido: porIntencionPartido,
   };
 }
 

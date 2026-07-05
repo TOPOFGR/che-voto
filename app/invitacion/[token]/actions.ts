@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
+import { mensajeAuthError } from "@/lib/auth/errores";
 import { getSessionUser } from "@/lib/session";
 import { getInvitacionUsable, aceptarInvitacion } from "@/lib/invitaciones";
 
@@ -30,9 +31,10 @@ export async function registrarDesdeInvitacion(
   const { error } = await auth.signUp.email({ email, name, password });
   if (error) {
     return {
-      error:
-        error.message ||
+      error: mensajeAuthError(
+        error,
         "No se pudo crear la cuenta. Si ya tenés una, iniciá sesión.",
+      ),
     };
   }
 

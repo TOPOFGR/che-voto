@@ -4,12 +4,10 @@ import { getDashboardStats } from "@/lib/queries";
 import { StatCard, PageHeader } from "@/components/ui";
 import { AgregarVotanteIcon, MapaIcon, VotantesIcon, ArrowRightIcon } from "@/components/icons";
 import {
-  ETAPAS,
-  INTENCIONES,
+  INTENCIONES_PARTIDO,
   ROLES,
   ROLES_VISION_TOTAL,
-  type EtapaEmbudo,
-  type IntencionVoto,
+  type IntencionPartido,
 } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +17,8 @@ export default async function DashboardPage() {
   const stats = await getDashboardStats(usuario);
 
   const alcanceTotal = ROLES_VISION_TOTAL.includes(usuario.rol);
-  const etapaMap = new Map(stats.por_etapa.map((e) => [e.etapa, e.n]));
-  const maxEtapa = Math.max(1, ...stats.por_etapa.map((e) => e.n));
+  const intencionMap = new Map(stats.por_intencion_partido.map((i) => [i.intencion_partido, i.n]));
+  const maxIntencion = Math.max(1, ...stats.por_intencion_partido.map((i) => i.n));
 
   return (
     <div>
@@ -32,9 +30,14 @@ export default async function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Votantes" value={stats.total} accent="#0ea372" />
-        <StatCard label="Garantizados" value={stats.garantizados} accent={ETAPAS.garantizado.color} />
-        <StatCard label="Simpatizantes" value={stats.simpatizantes} accent={ETAPAS.simpatizante.color} />
+        <StatCard label="Votantes" value={stats.total} />
+        <StatCard label="Habilitados" value={stats.habilitados} accent="#0ea372" hint="para votar según el padrón" />
+        <StatCard
+          label="Intención"
+          value={stats.intencion}
+          accent="#0a7050"
+          hint={alcanceTotal ? "total de votantes cargados" : "habilitados por tu partido"}
+        />
         <StatCard label="Con ubicación" value={stats.con_ubicacion} hint="visibles en el mapa" />
       </div>
 
@@ -80,9 +83,10 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Funnel by stage */}
+      {/* Intención por partido — barras en gris neutro: los partidos no se
+          codifican por color (regla de neutralidad del design system). */}
       <div className="card p-5 mt-4">
-        <h2 className="font-semibold text-slate-800 mb-4">Embudo por etapa</h2>
+        <h2 className="font-semibold text-slate-800 mb-4">Intención por partido</h2>
         {stats.total === 0 ? (
           <p className="text-sm text-muted">
             Todavía no hay votantes cargados. Empezá con{" "}
@@ -93,17 +97,19 @@ export default async function DashboardPage() {
           </p>
         ) : (
           <div className="space-y-2.5">
-            {(Object.keys(ETAPAS) as EtapaEmbudo[]).map((etapa) => {
-              const n = etapaMap.get(etapa) ?? 0;
+            {(Object.keys(INTENCIONES_PARTIDO) as IntencionPartido[]).map((ip) => {
+              const n = intencionMap.get(ip) ?? 0;
               return (
-                <div key={etapa} className="flex items-center gap-3">
-                  <span className="text-xs text-slate-600 w-28 shrink-0">{ETAPAS[etapa].label}</span>
+                <div key={ip} className="flex items-center gap-3">
+                  <span className="text-xs text-slate-600 w-28 shrink-0">
+                    {INTENCIONES_PARTIDO[ip]}
+                  </span>
                   <div className="flex-1 h-6 bg-slate-100 rounded-lg overflow-hidden">
                     <div
                       className="h-full rounded-lg transition-all"
                       style={{
-                        width: `${(n / maxEtapa) * 100}%`,
-                        backgroundColor: ETAPAS[etapa].color,
+                        width: `${(n / maxIntencion) * 100}%`,
+                        backgroundColor: ip === "ninguno" || ip === "desconozco" ? "#cbd5e1" : "#94a3b8",
                         minWidth: n > 0 ? "1.5rem" : 0,
                       }}
                     />
@@ -115,21 +121,6 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
-
-      {/* Intent breakdown */}
-      {stats.por_intencion.length > 0 && (
-        <div className="card p-5 mt-4">
-          <h2 className="font-semibold text-slate-800 mb-3">Intención de voto</h2>
-          <div className="flex flex-wrap gap-2">
-            {stats.por_intencion.map((i) => (
-              <div key={i.intencion} className="chip bg-slate-100 text-slate-700">
-                {INTENCIONES[i.intencion as IntencionVoto].label}
-                <span className="font-bold ml-1">{i.n}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

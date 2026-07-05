@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
+import { mensajeAuthError } from "@/lib/auth/errores";
 
 // Only allow same-site relative redirects to avoid open-redirect abuse.
 function safeNext(next: FormDataEntryValue | null): string {
@@ -19,7 +20,7 @@ export async function signInWithEmail(
   });
 
   if (error) {
-    return { error: error.message || "No se pudo iniciar sesión. Intentá de nuevo." };
+    return { error: mensajeAuthError(error, "No se pudo iniciar sesión. Intentá de nuevo.") };
   }
   redirect(safeNext(formData.get("next")));
 }

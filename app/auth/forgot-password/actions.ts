@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth/server";
+import { mensajeAuthError } from "@/lib/auth/errores";
 
 export interface ResetRequestState {
   error?: string;
@@ -29,9 +30,10 @@ export async function solicitarReset(
   const { error } = await auth.requestPasswordReset({ email, redirectTo });
   if (error) {
     return {
-      error:
-        error.message ||
+      error: mensajeAuthError(
+        error,
         "No pudimos enviar el correo. Revisá la dirección e intentá de nuevo.",
+      ),
     };
   }
   return { sent: true };

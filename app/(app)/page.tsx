@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUsuario } from "@/lib/session";
 import { getDashboardStats } from "@/lib/queries";
 import { StatCard, PageHeader } from "@/components/ui";
-import { PlusIcon, MapIcon, UsersIcon } from "@/components/icons";
+import { PlusIcon, MapIcon, UsersIcon, ArrowRightIcon } from "@/components/icons";
 import {
   ETAPAS,
   INTENCIONES,
@@ -41,15 +41,21 @@ export default async function DashboardPage() {
       {/* Primary action */}
       <Link
         href="/votantes/nuevo"
-        className="mt-4 flex items-center gap-4 rounded-2xl bg-brand-600 p-5 text-white shadow-lg shadow-brand-600/25 ring-1 ring-inset ring-white/10 transition-colors hover:bg-brand-700"
+        className="group relative mt-4 flex items-center gap-4 overflow-hidden rounded-2xl bg-gradient-to-r from-brand-600 to-brand-500 p-5 text-white shadow-lg shadow-brand-600/30 ring-1 ring-inset ring-white/10 transition-all hover:shadow-xl hover:shadow-brand-600/40 hover:-translate-y-0.5"
       >
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-brand-600">
+        {/* Decorative glow */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl"
+        />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm transition-transform group-hover:scale-105 group-hover:rotate-90">
           <PlusIcon className="h-6 w-6" />
         </span>
-        <div>
-          <p className="text-base font-semibold">Cargar votante</p>
+        <div className="min-w-0">
+          <p className="text-base font-bold tracking-tight">Cargar votante</p>
           <p className="text-sm text-white/80">Alta manual en el territorio</p>
         </div>
+        <ArrowRightIcon className="ml-auto h-5 w-5 shrink-0 text-white/70 transition-transform group-hover:translate-x-1 group-hover:text-white" />
       </Link>
 
       {/* Quick actions */}

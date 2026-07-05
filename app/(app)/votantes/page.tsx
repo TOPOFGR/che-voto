@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { requireUsuario } from "@/lib/session";
-import { getActiveCampaign, getTerritorios, getVotantes } from "@/lib/queries";
+import { getVotantes } from "@/lib/queries";
 import { PageHeader, EmptyState } from "@/components/ui";
-import { EtapaBadge, IntencionBadge } from "@/components/badges";
+import { IntencionPartidoBadge, HabilitadoBadge } from "@/components/badges";
 import { PlusIcon } from "@/components/icons";
-import { ROLES_VISION_TOTAL, type EtapaEmbudo, type IntencionVoto } from "@/lib/types";
+import { ROLES_VISION_TOTAL, type IntencionPartido } from "@/lib/types";
 import { Filtros } from "./filtros";
 
 export const dynamic = "force-dynamic";
@@ -12,22 +12,18 @@ export const dynamic = "force-dynamic";
 export default async function VotantesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; etapa?: string; intencion?: string; territorio?: string }>;
+  searchParams: Promise<{ q?: string; intencion?: string; habilitado?: string }>;
 }) {
   const usuario = await requireUsuario();
   const sp = await searchParams;
-  const campaign = await getActiveCampaign();
 
-  const territorios = campaign ? await getTerritorios(campaign.id) : [];
   const votantes = await getVotantes(usuario, {
     q: sp.q?.trim() || undefined,
-    etapa: (sp.etapa as EtapaEmbudo) || undefined,
-    intencion: (sp.intencion as IntencionVoto) || undefined,
-    territorioId: sp.territorio || undefined,
+    intencion_partido: (sp.intencion as IntencionPartido) || undefined,
+    habilitado: sp.habilitado === "si" ? "si" : sp.habilitado === "no" ? "no" : undefined,
   });
 
   const alcanceTotal = ROLES_VISION_TOTAL.includes(usuario.rol);
-  const puedeCargar = usuario.rol !== "analista";
 
   return (
     <div>
@@ -36,18 +32,16 @@ export default async function VotantesPage({
         subtitle={
           alcanceTotal
             ? "Todos los votantes de la campaña"
-            : "Votantes de tu territorio y los que cargaste"
+            : "Los votantes que cargaste vos y tu equipo"
         }
         action={
-          puedeCargar ? (
-            <Link href="/votantes/nuevo" className="btn-primary">
-              <PlusIcon className="w-4 h-4" /> Cargar
-            </Link>
-          ) : undefined
+          <Link href="/votantes/nuevo" className="btn-primary">
+            <PlusIcon className="w-4 h-4" /> Cargar
+          </Link>
         }
       />
 
-      <Filtros territorios={territorios.map((t) => ({ id: t.id, nombre: t.nombre }))} />
+      <Filtros />
 
       <p className="text-xs text-muted mb-3">
         {votantes.length} {votantes.length === 1 ? "resultado" : "resultados"}
@@ -57,38 +51,37 @@ export default async function VotantesPage({
       {votantes.length === 0 ? (
         <EmptyState
           title="No hay votantes que coincidan"
-          description={
-            puedeCargar
-              ? "Ajustá los filtros o cargá el primer votante de tu territorio."
-              : "Ajustá los filtros para ver resultados."
-          }
-          cta={puedeCargar ? { href: "/votantes/nuevo", label: "Cargar votante" } : undefined}
+          description="Ajustá los filtros o cargá el primer votante de tu equipo."
+          cta={{ href: "/votantes/nuevo", label: "Cargar votante" }}
         />
       ) : (
         <ul className="space-y-2.5">
           {votantes.map((v) => (
-            <li key={v.id} className="card p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">
-                    {v.nombre} {v.apellido ?? ""}
-                  </p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted mt-0.5">
-                    {v.numero_cedula && <span>CI {v.numero_cedula}</span>}
-                    {v.telefono && <span>{v.telefono}</span>}
-                    {v.territorio_nombre && <span>📍 {v.territorio_nombre}</span>}
-                  </div>
-                  {v.referente_nombre && (
-                    <p className="text-xs text-muted mt-1">
-                      Referente: {v.referente_nombre}
+            <li key={v.id}>
+              <Link href={`/votantes/${v.id}`} className="card p-4 block hover:bg-slate-50 transition-colors">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900">
+                      {v.nombre} {v.apellido ?? ""}
                     </p>
-                  )}
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted mt-0.5">
+                      {v.numero_cedula && <span>CI {v.numero_cedula}</span>}
+                      {v.telefono && <span>{v.telefono}</span>}
+                      {v.precisa_transporte && <span>🚐 Transporte</span>}
+                      {v.estado_voto === "voto" && <span className="text-emerald-600">✓ Votó</span>}
+                    </div>
+                    {v.referente_nombre && (
+                      <p className="text-xs text-muted mt-1">
+                        Cargó: {v.referente_nombre}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <IntencionPartidoBadge intencion={v.intencion_partido} />
+                    <HabilitadoBadge habilitado={v.habilitado} />
+                  </div>
                 </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <EtapaBadge etapa={v.etapa} />
-                  <IntencionBadge intencion={v.intencion} />
-                </div>
-              </div>
+              </Link>
             </li>
           ))}
         </ul>

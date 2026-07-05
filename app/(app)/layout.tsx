@@ -13,6 +13,7 @@ export default async function AppLayout({
 }) {
   const usuario = await requireUsuario();
   const campaign = await getActiveCampaign();
+  const isAdmin = usuario.rol === "administrador";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -33,7 +34,7 @@ export default async function AppLayout({
           </div>
 
           <div className="flex-1 flex justify-center">
-            <TopNav />
+            <TopNav isAdmin={isAdmin} />
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -52,7 +53,7 @@ export default async function AppLayout({
         {children}
       </main>
 
-      <BottomNav />
+      <BottomNav isAdmin={isAdmin} />
     </div>
   );
 }

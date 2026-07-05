@@ -24,7 +24,7 @@ export default async function OnboardingPage() {
           <p className="text-lg font-bold text-slate-900">Tu cuenta no tiene acceso todavía</p>
           <p className="text-sm text-muted mt-2">
             El ingreso a la campaña es solo por invitación. Pedile a un responsable
-            (jefe de campaña o coordinador) que te comparta un link de invitación.
+            (tu intendente, concejal o dirigente) que te comparta un link de invitación.
             Si ya lo tenés, abrilo desde el navegador con esta misma cuenta
             {su.email ? ` (${su.email})` : ""}.
           </p>

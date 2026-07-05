@@ -4,23 +4,30 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HomeIcon, UsersIcon, MapIcon, OrgIcon } from "@/components/icons";
 
-const ITEMS = [
+const BASE_ITEMS = [
   { href: "/", label: "Inicio", icon: HomeIcon, exact: true },
   { href: "/votantes", label: "Votantes", icon: UsersIcon, exact: false },
   { href: "/mapa", label: "Mapa", icon: MapIcon, exact: false },
   { href: "/organigrama", label: "Equipo", icon: OrgIcon, exact: false },
 ];
 
+// El catálogo de partidos/listas sólo lo ve el administrador.
+const ADMIN_ITEM = { href: "/partidos", label: "Partidos", icon: OrgIcon, exact: false };
+
+function itemsPara(isAdmin: boolean) {
+  return isAdmin ? [...BASE_ITEMS, ADMIN_ITEM] : BASE_ITEMS;
+}
+
 function isActive(pathname: string, href: string, exact: boolean) {
   return exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 }
 
 /** Desktop: horizontal links in the header. */
-export function TopNav() {
+export function TopNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   return (
     <nav className="hidden md:flex items-center gap-1">
-      {ITEMS.map((item) => {
+      {itemsPara(isAdmin).map((item) => {
         const active = isActive(pathname, item.href, item.exact);
         return (
           <Link
@@ -40,12 +47,13 @@ export function TopNav() {
 }
 
 /** Mobile: fixed bottom tab bar. */
-export function BottomNav() {
+export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+  const items = itemsPara(isAdmin);
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-[var(--color-line)] pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-4">
-        {ITEMS.map((item) => {
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+        {items.map((item) => {
           const active = isActive(pathname, item.href, item.exact);
           return (
             <Link

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireUsuario } from "@/lib/session";
-import { createVotante } from "@/lib/queries";
+import { updateVotante } from "@/lib/queries";
 import { INTENCIONES_PARTIDO, type IntencionPartido } from "@/lib/types";
 
 function num(v: FormDataEntryValue | null): number | null {
@@ -10,23 +10,22 @@ function num(v: FormDataEntryValue | null): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
-
 function str(formData: FormData, name: string): string {
   return ((formData.get(name) as string) || "").trim();
 }
-
-/** "true" | "false" | "" (select de habilitación del padrón) → boolean | null */
 function parseBool(v: FormDataEntryValue | null): boolean | null {
   if (v === "true") return true;
   if (v === "false") return false;
   return null;
 }
 
-export async function cargarVotante(
+export async function actualizarVotante(
   _prev: { error: string } | null,
   formData: FormData,
 ) {
   const usuario = await requireUsuario();
+  const id = str(formData, "id");
+  if (!id) return { error: "Falta el identificador del votante." };
 
   const nombre = str(formData, "nombre");
   if (!nombre) return { error: "El nombre es obligatorio." };
@@ -46,7 +45,7 @@ export async function cargarVotante(
     return { error: "Si hay que pasar a buscarlo, la dirección es obligatoria." };
   }
 
-  await createVotante(usuario, {
+  const ok = await updateVotante(usuario, id, {
     nombre,
     numero_cedula,
     fecha_nacimiento,
@@ -61,7 +60,12 @@ export async function cargarVotante(
     padron_local: str(formData, "padron_local") || null,
     lat: num(formData.get("lat")),
     lng: num(formData.get("lng")),
+    // GOTV
+    estado_voto: formData.get("voto") === "on" ? "voto" : "pendiente",
+    fue_buscado: formData.get("fue_buscado") === "on",
+    agradecido: formData.get("agradecido") === "on",
   });
 
+  if (!ok) return { error: "No se encontró el votante o no tenés acceso." };
   redirect("/votantes");
 }

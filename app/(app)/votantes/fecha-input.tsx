@@ -112,7 +112,7 @@ export function FechaInput({
           className="sr-only"
         />
       </div>
-      {invalida && <p className="text-xs text-red-600 mt-1">Fecha inválida.</p>}
+      {invalida && <p className="text-xs text-accent-700 mt-1">Fecha inválida.</p>}
       <input type="hidden" name={name} value={iso} />
     </>
   );

@@ -150,21 +150,21 @@ export function InvitarPanel({
       )}
 
       {state?.error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 mt-3">{state.error}</p>
+        <p className="alert-danger mt-3">{state.error}</p>
       )}
 
       {state?.token && (
-        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-          <p className="text-sm font-medium text-emerald-800">
+        <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-3">
+          <p className="text-sm font-medium text-brand-800">
             Invitación creada{state.rol ? ` como ${ROLES[state.rol].label}` : ""}. Compartí este link:
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <code className="flex-1 min-w-0 truncate text-xs bg-white rounded-lg px-3 py-2 border border-emerald-200">
+            <code className="flex-1 min-w-0 truncate text-xs bg-white rounded-lg px-3 py-2 border border-brand-200">
               {linkDe(state.token)}
             </code>
             <CopiarLink token={state.token} />
           </div>
-          <p className="text-xs text-emerald-700 mt-2">
+          <p className="text-xs text-brand-700 mt-2">
             Quien abra el link crea su cuenta y queda con el rol asignado. Vence en 14 días.
           </p>
         </div>
@@ -192,7 +192,7 @@ export function InvitarPanel({
                 <CopiarLink token={inv.token} className="shrink-0" />
                 <form action={revocarInvitacionAction} className="shrink-0">
                   <input type="hidden" name="id" value={inv.id} />
-                  <button type="submit" className="btn-ghost text-red-600" title="Revocar invitación">
+                  <button type="submit" className="btn-danger" title="Revocar invitación">
                     Revocar
                   </button>
                 </form>

@@ -1,11 +1,11 @@
 {
-  "name": "Campaña CRM",
-  "short_name": "Campaña",
-  "description": "CRM territorial para campañas políticas",
+  "name": "CheVoto",
+  "short_name": "CheVoto",
+  "description": "Captación territorial para la campaña — CRM de votantes",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f1f5f9",
-  "theme_color": "#4f46e5",
+  "theme_color": "#0ea372",
   "icons": [
     { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]

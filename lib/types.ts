@@ -163,14 +163,16 @@ export function puedeInvitar(rol: RolUsuario): boolean {
   return rolesInvitables(rol).length > 0;
 }
 
+// Colores del design system CheVoto (neutralidad política: sin rojo ni azul).
+// La progresión hacia "garantizado" se lee como esmeralda cada vez más plena.
 export const ETAPAS: Record<EtapaEmbudo, { label: string; color: string }> = {
   contacto: { label: "Contacto", color: "#94a3b8" },
-  simpatizante: { label: "Simpatizante", color: "#38bdf8" },
-  voluntario: { label: "Voluntario", color: "#818cf8" },
-  garantizado: { label: "Garantizado", color: "#22c55e" },
-  indeciso: { label: "Indeciso", color: "#f59e0b" },
-  opositor: { label: "Opositor", color: "#ef4444" },
-  no_contactar: { label: "No contactar", color: "#6b7280" },
+  simpatizante: { label: "Simpatizante", color: "#6ed3ab" },
+  voluntario: { label: "Voluntario", color: "#35bc8b" },
+  garantizado: { label: "Garantizado", color: "#0ea372" },
+  indeciso: { label: "Indeciso", color: "#fdba74" },
+  opositor: { label: "Opositor", color: "#c2410c" },
+  no_contactar: { label: "No contactar", color: "#64748b" },
 };
 
 export const INTENCIONES: Record<IntencionVoto, { label: string; peso: number }> = {

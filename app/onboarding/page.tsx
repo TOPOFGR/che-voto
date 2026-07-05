@@ -18,7 +18,7 @@ export default async function OnboardingPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-5 py-10 bg-gradient-to-b from-brand-50 to-canvas">
       <div className="w-full max-w-md">
         <div className="card p-6 text-center">
-          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-3 mx-auto">
+          <div className="w-12 h-12 rounded-full bg-accent-50 text-accent-600 flex items-center justify-center text-xl mb-3 mx-auto">
             !
           </div>
           <p className="text-lg font-bold text-slate-900">Tu cuenta no tiene acceso todavía</p>

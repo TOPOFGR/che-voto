@@ -1,11 +1,31 @@
 @import "tailwindcss";
 
+/* CheVoto design system — tokens sincronizados desde claude.ai/design.
+   Regla dura: neutralidad política en color. Nunca rojo colorado (ANR)
+   ni azul liberal (PLRA). Negativo/alerta = naranja profundo, no rojo. */
 @theme {
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-500: #4f46e5;
-  --color-brand-600: #4338ca;
-  --color-brand-700: #3730a3;
+  /* Esmeralda (primario / marca) */
+  --color-brand-50: #e9f9f1;
+  --color-brand-100: #d0f2e3;
+  --color-brand-200: #a4e5c9;
+  --color-brand-300: #6ed3ab;
+  --color-brand-400: #35bc8b;
+  --color-brand-500: #0ea372;
+  --color-brand-600: #0b8a61;
+  --color-brand-700: #0a7050;
+  --color-brand-800: #095a41;
+  --color-brand-900: #084a37;
+
+  /* Naranja (acento; también alerta/negativo — nunca rojo) */
+  --color-accent-50: #fff4ec;
+  --color-accent-100: #ffe6d5;
+  --color-accent-300: #fdba74;
+  --color-accent-500: #f97316;
+  --color-accent-600: #ea580c;
+  --color-accent-700: #c2410c;
+  --color-danger: #c2410c;
+
+  /* Tinta + neutrales */
   --color-ink: #0f172a;
   --color-muted: #64748b;
   --color-line: #e2e8f0;
@@ -15,6 +35,35 @@
 
 :root {
   color-scheme: light;
+
+  /* Estado del votante — color fijo, el color ES el dato */
+  --estado-favorable: var(--color-brand-500);
+  --estado-favorable-bg: var(--color-brand-100);
+  --estado-favorable-text: var(--color-brand-700);
+  --estado-indeciso: var(--color-muted);
+  --estado-indeciso-bg: #f1f5f9;
+  --estado-indeciso-text: var(--color-muted);
+  --estado-contrario: var(--color-accent-500);
+  --estado-contrario-bg: var(--color-accent-100);
+  --estado-contrario-text: var(--color-accent-700);
+
+  /* Sync / offline */
+  --sync-ok: var(--color-brand-500);
+  --sync-pendiente: var(--color-accent-500);
+  --sync-offline: var(--color-muted);
+
+  /* Efectos */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-raised: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-cta: 0 8px 20px rgba(14, 163, 114, 0.28);
+  --focus-ring: var(--color-brand-100);
+
+  /* Layout táctil */
+  --touch-min: 44px;
+  --touch-comfort: 48px;
+  --touch-lg: 56px;
+  --header-h: 56px;
+  --tabbar-h: 60px;
 }
 
 html,
@@ -32,24 +81,32 @@ body {
 /* Reusable primitives */
 @layer components {
   .card {
-    @apply rounded-2xl bg-white border border-[var(--color-line)] shadow-sm;
+    @apply rounded-2xl bg-white border border-[var(--color-line)];
+    box-shadow: var(--shadow-card);
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--touch-min)];
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed bg-brand-500 text-white hover:bg-brand-600;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--touch-min)] bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed bg-white border border-[var(--color-line)] text-slate-700 hover:bg-slate-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--touch-min)] bg-white border border-[var(--color-line)] text-slate-700 hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--touch-min)] bg-accent-50 border border-accent-300 text-accent-700 hover:bg-accent-100;
   }
   .field {
-    @apply block w-full rounded-xl border border-[var(--color-line)] bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+    @apply block w-full rounded-xl border border-[var(--color-line)] bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-brand-500 focus:ring-[3px] focus:ring-brand-100 min-h-[var(--touch-min)];
   }
   .label {
     @apply block text-sm font-medium text-slate-700 mb-1.5;
   }
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+  /* Aviso de error/alerta — naranja profundo, nunca rojo */
+  .alert-danger {
+    @apply text-sm text-accent-700 bg-accent-50 rounded-lg px-3 py-2;
   }
 }

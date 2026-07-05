@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { requireUsuario } from "@/lib/session";
 import { getActiveCampaign } from "@/lib/queries";
 import { RolBadge } from "@/components/badges";
+import { ChevotoMark } from "@/components/icons";
 import { TopNav, BottomNav } from "@/components/app-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 
@@ -13,28 +15,27 @@ export default async function AppLayout({
 }) {
   const usuario = await requireUsuario();
   const campaign = await getActiveCampaign();
-  const isAdmin = usuario.rol === "administrador";
 
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-[var(--color-line)]">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm font-bold">
-              ✔
-            </div>
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <ChevotoMark className="w-8 h-8 shrink-0" />
             <div className="leading-tight">
-              <p className="text-sm font-bold text-slate-900">Campaña CRM</p>
+              <p className="text-sm font-extrabold tracking-tight text-slate-900">
+                Che<span className="text-brand-600">Voto</span>
+              </p>
               {campaign && (
                 <p className="text-[11px] text-muted -mt-0.5 max-w-[150px] truncate">
                   {campaign.nombre}
                 </p>
               )}
             </div>
-          </div>
+          </Link>
 
           <div className="flex-1 flex justify-center">
-            <TopNav isAdmin={isAdmin} />
+            <TopNav />
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -53,7 +54,7 @@ export default async function AppLayout({
         {children}
       </main>
 
-      <BottomNav isAdmin={isAdmin} />
+      <BottomNav />
     </div>
   );
 }

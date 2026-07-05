@@ -22,8 +22,8 @@ export function NuevoPartidoForm() {
           <input id="p-sigla" name="sigla" required className="field" placeholder="PPQ" />
         </div>
       </div>
-      {state?.error && <p className="text-sm text-red-600 mt-2">{state.error}</p>}
-      {state?.ok && <p className="text-sm text-emerald-700 mt-2">Partido creado.</p>}
+      {state?.error && <p className="text-sm text-accent-700 mt-2">{state.error}</p>}
+      {state?.ok && <p className="text-sm text-brand-700 mt-2">Partido creado.</p>}
       <button type="submit" disabled={isPending} className="btn-primary mt-3 w-full sm:w-auto">
         {isPending ? "Guardando…" : "Agregar partido"}
       </button>
@@ -59,8 +59,8 @@ export function NuevaListaForm({ partidos }: { partidos: Partido[] }) {
           <input id="l-numero" name="numero" className="field" placeholder="1" />
         </div>
       </div>
-      {state?.error && <p className="text-sm text-red-600 mt-2">{state.error}</p>}
-      {state?.ok && <p className="text-sm text-emerald-700 mt-2">Lista creada.</p>}
+      {state?.error && <p className="text-sm text-accent-700 mt-2">{state.error}</p>}
+      {state?.ok && <p className="text-sm text-brand-700 mt-2">Lista creada.</p>}
       <button type="submit" disabled={isPending || partidos.length === 0} className="btn-primary mt-3 w-full sm:w-auto">
         {isPending ? "Guardando…" : "Agregar lista"}
       </button>

@@ -2,32 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HomeIcon, UsersIcon, MapIcon, OrgIcon } from "@/components/icons";
+import { PanelIcon, VotantesIcon, MapaIcon, MilitanteIcon, AgregarVotanteIcon } from "@/components/icons";
 
-const BASE_ITEMS = [
-  { href: "/", label: "Inicio", icon: HomeIcon, exact: true },
-  { href: "/votantes", label: "Votantes", icon: UsersIcon, exact: false },
-  { href: "/mapa", label: "Mapa", icon: MapIcon, exact: false },
-  { href: "/organigrama", label: "Equipo", icon: OrgIcon, exact: false },
+// El catálogo de partidos/listas no va en la navegación: el admin entra
+// desde el botón "Partidos y listas" en Equipo (/organigrama).
+const ITEMS = [
+  { href: "/", label: "Inicio", icon: PanelIcon, exact: true },
+  { href: "/votantes", label: "Votantes", icon: VotantesIcon, exact: false },
+  { href: "/mapa", label: "Mapa", icon: MapaIcon, exact: false },
+  { href: "/organigrama", label: "Equipo", icon: MilitanteIcon, exact: false },
 ];
-
-// El catálogo de partidos/listas sólo lo ve el administrador.
-const ADMIN_ITEM = { href: "/partidos", label: "Partidos", icon: OrgIcon, exact: false };
-
-function itemsPara(isAdmin: boolean) {
-  return isAdmin ? [...BASE_ITEMS, ADMIN_ITEM] : BASE_ITEMS;
-}
 
 function isActive(pathname: string, href: string, exact: boolean) {
   return exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 }
 
 /** Desktop: horizontal links in the header. */
-export function TopNav({ isAdmin = false }: { isAdmin?: boolean }) {
+export function TopNav() {
   const pathname = usePathname();
   return (
     <nav className="hidden md:flex items-center gap-1">
-      {itemsPara(isAdmin).map((item) => {
+      {ITEMS.map((item) => {
         const active = isActive(pathname, item.href, item.exact);
         return (
           <Link
@@ -46,28 +41,41 @@ export function TopNav({ isAdmin = false }: { isAdmin?: boolean }) {
   );
 }
 
-/** Mobile: fixed bottom tab bar. */
-export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
+/** Mobile: fixed bottom tab bar with the primary "Cargar" action in the center. */
+export function BottomNav() {
   const pathname = usePathname();
-  const items = itemsPara(isAdmin);
+  const mid = ITEMS.length / 2;
+
+  const tab = (item: (typeof ITEMS)[number]) => {
+    const active = isActive(pathname, item.href, item.exact);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${
+          active ? "text-brand-600" : "text-slate-500"
+        }`}
+      >
+        <item.icon className="w-5 h-5" />
+        {item.label}
+      </Link>
+    );
+  };
+
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-[var(--color-line)] pb-[env(safe-area-inset-bottom)]">
-      <div className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
-        {items.map((item) => {
-          const active = isActive(pathname, item.href, item.exact);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${
-                active ? "text-brand-600" : "text-slate-500"
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              {item.label}
-            </Link>
-          );
-        })}
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${ITEMS.length + 1}, minmax(0, 1fr))` }}>
+        {ITEMS.slice(0, mid).map(tab)}
+        <Link href="/votantes/nuevo" className="flex flex-col items-center gap-1 pt-1.5 pb-2">
+          <span
+            className="flex h-10 w-10 -mt-4 items-center justify-center rounded-full bg-brand-500 text-white"
+            style={{ boxShadow: "var(--shadow-cta)" }}
+          >
+            <AgregarVotanteIcon className="w-[22px] h-[22px]" />
+          </span>
+          <span className="text-[11px] font-semibold text-brand-600">Cargar</span>
+        </Link>
+        {ITEMS.slice(mid).map(tab)}
       </div>
     </nav>
   );

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VotantesIcon } from "@/components/icons";
 
 export function PageHeader({
   title,
@@ -46,15 +47,17 @@ export function EmptyState({
   title,
   description,
   cta,
+  icon,
 }: {
   title: string;
   description: string;
   cta?: { href: string; label: string };
+  icon?: React.ReactNode;
 }) {
   return (
     <div className="card p-8 flex flex-col items-center text-center">
-      <div className="w-12 h-12 rounded-full bg-brand-50 text-brand-500 flex items-center justify-center text-xl mb-3">
-        ◎
+      <div className="w-12 h-12 rounded-full bg-brand-50 text-brand-500 flex items-center justify-center mb-3">
+        {icon ?? <VotantesIcon className="w-6 h-6" />}
       </div>
       <p className="font-semibold text-slate-800">{title}</p>
       <p className="text-sm text-muted mt-1 max-w-xs">{description}</p>

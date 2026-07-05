@@ -8,13 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Campaña CRM",
-  description: "CRM territorial para campañas políticas",
+  title: "CheVoto",
+  description: "Captación territorial para la campaña — CRM de votantes",
   manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: "#0ea372",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

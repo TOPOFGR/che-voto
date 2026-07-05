@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
   if (state?.sent) {
     return (
       <div className="card p-6 text-center">
-        <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl mb-3 mx-auto">
+        <div className="w-12 h-12 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-xl mb-3 mx-auto">
           ✉
         </div>
         <h2 className="text-lg font-bold text-slate-900">Revisá tu correo</h2>
@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {state?.error && (
-          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          <p className="alert-danger">
             {state.error}
           </p>
         )}

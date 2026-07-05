@@ -53,7 +53,7 @@ export function Heatmap({
             radius: 28,
             blur: 20,
             maxZoom: 17,
-            gradient: { 0.2: "#38bdf8", 0.4: "#818cf8", 0.65: "#f59e0b", 1: "#22c55e" },
+            gradient: { 0.2: "#a4e5c9", 0.4: "#6ed3ab", 0.65: "#35bc8b", 1: "#0a7050" },
           },
         );
         heat.addTo(map);

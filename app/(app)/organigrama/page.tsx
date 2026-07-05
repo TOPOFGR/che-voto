@@ -2,8 +2,10 @@ import { requireUsuario } from "@/lib/session";
 import { getActiveCampaign, getEquipo, type MiembroEquipo } from "@/lib/queries";
 import { getInvitacionesPendientes } from "@/lib/invitaciones";
 import { getIntendentes, getListasDeIntendente } from "@/lib/partidos";
+import Link from "next/link";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { RolBadge } from "@/components/badges";
+import { PadronIcon } from "@/components/icons";
 import { ROLES, puedeInvitar, rolesInvitables, type RolUsuario } from "@/lib/types";
 import { InvitarPanel } from "./invitar";
 
@@ -109,6 +111,13 @@ export default async function OrganigramaPage() {
         subtitle={`Equipo de ${campaign?.nombre ?? "la campaña"} · ${equipo.length} ${
           equipo.length === 1 ? "integrante" : "integrantes"
         }`}
+        action={
+          usuario.rol === "administrador" ? (
+            <Link href="/partidos" className="btn-ghost">
+              <PadronIcon className="w-4 h-4" /> Partidos y listas
+            </Link>
+          ) : undefined
+        }
       />
 
       {invita && (

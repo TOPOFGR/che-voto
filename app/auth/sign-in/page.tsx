@@ -13,7 +13,7 @@ export default async function SignInPage({
     <div className="card p-6">
       <h2 className="text-lg font-bold text-slate-900 mb-5">Iniciar sesión</h2>
       {reset && (
-        <p className="text-sm text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 mb-4">
+        <p className="text-sm text-brand-700 bg-brand-50 rounded-lg px-3 py-2 mb-4">
           Tu contraseña se actualizó. Ingresá con la nueva.
         </p>
       )}

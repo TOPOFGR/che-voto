@@ -12,7 +12,7 @@ export function NuevoVotanteForm() {
       <VotanteCampos />
 
       {state?.error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{state.error}</p>
+        <p className="alert-danger">{state.error}</p>
       )}
 
       <button type="submit" disabled={isPending} className="btn-primary w-full">

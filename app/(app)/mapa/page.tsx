@@ -80,7 +80,7 @@ export default async function MapaPage({
           <span
             className="h-2.5 w-32 rounded-full"
             style={{
-              background: "linear-gradient(90deg,#38bdf8,#818cf8,#f59e0b,#22c55e)",
+              background: "linear-gradient(90deg,#a4e5c9,#6ed3ab,#35bc8b,#0a7050)",
             }}
           />
           <span className="text-xs text-muted">baja → alta afinidad</span>

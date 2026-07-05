@@ -189,12 +189,12 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
         </div>
 
         {habilitado === "false" && (
-          <p className="mt-3 flex items-center gap-2 font-bold text-red-600">
+          <p className="mt-3 flex items-center gap-2 font-bold text-accent-700">
             <span className="text-lg">✕</span> NO HABILITADO PARA LAS ELECCIONES
           </p>
         )}
         {habilitado === "true" && (
-          <p className="mt-3 flex items-center gap-2 font-semibold text-emerald-700">
+          <p className="mt-3 flex items-center gap-2 font-semibold text-brand-700">
             <span className="text-lg">✓</span> Votante habilitado
           </p>
         )}
@@ -246,7 +246,7 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
         <div className="h-56 rounded-lg overflow-hidden relative isolate z-0">
           <PinMap value={coords} onChange={setCoords} center={CENTRO_ASUNCION} />
         </div>
-        {geoStatus && <p className="text-xs text-amber-600 mt-2">{geoStatus}</p>}
+        {geoStatus && <p className="text-xs text-accent-600 mt-2">{geoStatus}</p>}
         <input type="hidden" name="lat" value={coords?.lat ?? ""} />
         <input type="hidden" name="lng" value={coords?.lng ?? ""} />
       </div>

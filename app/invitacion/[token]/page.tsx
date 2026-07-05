@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSessionUser, getCurrentUsuario } from "@/lib/session";
 import { getInvitacionUsable } from "@/lib/invitaciones";
 import { ROLES } from "@/lib/types";
+import { ChevotoMark } from "@/components/icons";
 import { RegistroInvitacionForm } from "./registro-form";
 import { aceptarInvitacionAction } from "./actions";
 
@@ -12,11 +13,11 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col items-center justify-center px-5 py-10 bg-gradient-to-b from-brand-50 to-canvas">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-brand-500 text-white flex items-center justify-center text-2xl font-bold shadow-lg shadow-brand-500/30">
-            ✔
-          </div>
-          <h1 className="mt-4 text-xl font-bold text-slate-900">Campaña CRM</h1>
-          <p className="text-sm text-muted">Gestión territorial de votantes</p>
+          <ChevotoMark className="w-14 h-14 drop-shadow-lg" />
+          <h1 className="mt-4 text-xl font-extrabold tracking-tight text-slate-900">
+            Che<span className="text-brand-600">Voto</span>
+          </h1>
+          <p className="text-sm text-muted">Captación territorial de votantes</p>
         </div>
         {children}
       </div>
@@ -94,7 +95,7 @@ export default async function InvitacionPage({
         <div className="card p-6">
           {cabecera}
           {e && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-3">{e}</p>
+            <p className="alert-danger mb-3">{e}</p>
           )}
           <p className="text-sm text-muted text-center mb-4">
             Estás por unirte como <span className="font-medium text-slate-700">{rolLabel}</span>.

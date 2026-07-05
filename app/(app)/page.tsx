@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUsuario } from "@/lib/session";
 import { getDashboardStats } from "@/lib/queries";
 import { StatCard, PageHeader } from "@/components/ui";
-import { PlusIcon, MapIcon, UsersIcon, ArrowRightIcon } from "@/components/icons";
+import { AgregarVotanteIcon, MapaIcon, VotantesIcon, ArrowRightIcon } from "@/components/icons";
 import {
   ETAPAS,
   INTENCIONES,
@@ -32,7 +32,7 @@ export default async function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Votantes" value={stats.total} accent="#4f46e5" />
+        <StatCard label="Votantes" value={stats.total} accent="#0ea372" />
         <StatCard label="Garantizados" value={stats.garantizados} accent={ETAPAS.garantizado.color} />
         <StatCard label="Simpatizantes" value={stats.simpatizantes} accent={ETAPAS.simpatizante.color} />
         <StatCard label="Con ubicación" value={stats.con_ubicacion} hint="visibles en el mapa" />
@@ -48,8 +48,8 @@ export default async function DashboardPage() {
           aria-hidden
           className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl"
         />
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm transition-transform group-hover:scale-105 group-hover:rotate-90">
-          <PlusIcon className="h-6 w-6" />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm transition-transform group-hover:scale-105">
+          <AgregarVotanteIcon className="h-6 w-6" />
         </span>
         <div className="min-w-0">
           <p className="text-base font-bold tracking-tight">Cargar votante</p>
@@ -61,8 +61,8 @@ export default async function DashboardPage() {
       {/* Quick actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
         <Link href="/votantes" className="card p-4 flex items-center gap-3 hover:border-brand-300 transition-colors">
-          <span className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-            <UsersIcon className="w-5 h-5" />
+          <span className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center">
+            <VotantesIcon className="w-5 h-5" />
           </span>
           <div>
             <p className="font-semibold text-slate-800 text-sm">Ver votantes</p>
@@ -70,8 +70,8 @@ export default async function DashboardPage() {
           </div>
         </Link>
         <Link href="/mapa" className="card p-4 flex items-center gap-3 hover:border-brand-300 transition-colors">
-          <span className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center">
-            <MapIcon className="w-5 h-5" />
+          <span className="w-10 h-10 rounded-xl bg-accent-100 text-accent-600 flex items-center justify-center">
+            <MapaIcon className="w-5 h-5" />
           </span>
           <div>
             <p className="font-semibold text-slate-800 text-sm">Mapa de calor</p>

@@ -3,7 +3,7 @@ import { requireUsuario } from "@/lib/session";
 import { getVotantes } from "@/lib/queries";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { IntencionPartidoBadge, HabilitadoBadge } from "@/components/badges";
-import { PlusIcon } from "@/components/icons";
+import { AgregarVotanteIcon } from "@/components/icons";
 import { ROLES_VISION_TOTAL, type IntencionPartido } from "@/lib/types";
 import { Filtros } from "./filtros";
 
@@ -36,7 +36,7 @@ export default async function VotantesPage({
         }
         action={
           <Link href="/votantes/nuevo" className="btn-primary">
-            <PlusIcon className="w-4 h-4" /> Cargar
+            <AgregarVotanteIcon className="w-4 h-4" /> Cargar
           </Link>
         }
       />
@@ -68,7 +68,7 @@ export default async function VotantesPage({
                       {v.numero_cedula && <span>CI {v.numero_cedula}</span>}
                       {v.telefono && <span>{v.telefono}</span>}
                       {v.precisa_transporte && <span>🚐 Transporte</span>}
-                      {v.estado_voto === "voto" && <span className="text-emerald-600">✓ Votó</span>}
+                      {v.estado_voto === "voto" && <span className="text-brand-600">✓ Votó</span>}
                     </div>
                     {v.referente_nombre && (
                       <p className="text-xs text-muted mt-1">

@@ -1,19 +1,13 @@
 import { requireUsuario } from "@/lib/session";
 import { getActiveCampaign, getEquipo, type MiembroEquipo } from "@/lib/queries";
 import { getInvitacionesPendientes } from "@/lib/invitaciones";
+import { getIntendentes, getListasDeIntendente } from "@/lib/partidos";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { RolBadge } from "@/components/badges";
-import { ROLES, TIPOS_TERRITORIO, puedeInvitar, rolesInvitables, type RolUsuario } from "@/lib/types";
+import { ROLES, puedeInvitar, rolesInvitables, type RolUsuario } from "@/lib/types";
 import { InvitarPanel } from "./invitar";
 
 export const dynamic = "force-dynamic";
-
-// Visual tiers of the organigram, top → bottom.
-const TIERS: { titulo: string; roles: RolUsuario[] }[] = [
-  { titulo: "Dirección", roles: ["admin", "jefe_campania"] },
-  { titulo: "Coordinación y análisis", roles: ["coordinador", "analista"] },
-  { titulo: "Territorio", roles: ["referente", "fiscal"] },
-];
 
 function MemberCard({ m, esYo }: { m: MiembroEquipo; esYo: boolean }) {
   return (
@@ -34,17 +28,7 @@ function MemberCard({ m, esYo }: { m: MiembroEquipo; esYo: boolean }) {
         </div>
       </div>
 
-      {m.territorios.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {m.territorios.map((t) => (
-            <span key={t.id} className="chip bg-slate-100 text-slate-600">
-              {TIPOS_TERRITORIO[t.tipo]}: {t.nombre}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {(m.rol === "referente" || m.rol === "coordinador") && (
+      {m.rol !== "administrador" && (
         <p className="text-xs text-muted mt-3">
           <span className="font-semibold text-slate-700">{m.votantes_cargados}</span> votantes cargados
         </p>
@@ -53,14 +37,70 @@ function MemberCard({ m, esYo }: { m: MiembroEquipo; esYo: boolean }) {
   );
 }
 
+/** Render a member and its subtree, indented, top → bottom. */
+function Rama({
+  nodo,
+  hijosDe,
+  yo,
+  nivel,
+}: {
+  nodo: MiembroEquipo;
+  hijosDe: Map<string, MiembroEquipo[]>;
+  yo: string;
+  nivel: number;
+}) {
+  const hijos = hijosDe.get(nodo.id) ?? [];
+  return (
+    <div className={nivel > 0 ? "border-l border-[var(--color-line)] pl-4 sm:pl-6" : ""}>
+      <div className="mb-3">
+        <MemberCard m={nodo} esYo={nodo.id === yo} />
+      </div>
+      {hijos.length > 0 && (
+        <div className="space-y-3">
+          {hijos.map((h) => (
+            <Rama key={h.id} nodo={h} hijosDe={hijosDe} yo={yo} nivel={nivel + 1} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default async function OrganigramaPage() {
   const usuario = await requireUsuario();
   const campaign = await getActiveCampaign();
-  const equipo = campaign ? await getEquipo(campaign.id) : [];
+  const equipo = campaign ? await getEquipo(usuario) : [];
 
   const invita = puedeInvitar(usuario.rol);
   const pendientes =
     invita && campaign ? await getInvitacionesPendientes(campaign.id) : [];
+
+  // Datos para invitar concejales: el admin elige intendente + lista; un
+  // intendente sólo elige lista (de las suyas) porque el concejal cuelga de él.
+  const puedeInvitarConcejal = invita && rolesInvitables(usuario.rol).includes("concejal");
+  const esIntendente = usuario.rol === "intendente";
+  const intendentes =
+    puedeInvitarConcejal && !esIntendente && campaign
+      ? await getIntendentes(campaign.id)
+      : [];
+  const misListas = esIntendente
+    ? (await getListasDeIntendente(usuario.id)).map((l) => ({
+        id: l.id,
+        etiqueta: `${l.partido_sigla ?? ""} · ${l.nombre}`,
+      }))
+    : [];
+
+  // Build the hierarchy tree from superior_id.
+  const hijosDe = new Map<string, MiembroEquipo[]>();
+  for (const m of equipo) {
+    if (!m.superior_id) continue;
+    const lista = hijosDe.get(m.superior_id) ?? [];
+    lista.push(m);
+    hijosDe.set(m.superior_id, lista);
+  }
+  // Roots: users with no superior, or whose superior isn't in the campaign list.
+  const ids = new Set(equipo.map((m) => m.id));
+  const raices = equipo.filter((m) => !m.superior_id || !ids.has(m.superior_id));
 
   return (
     <div>
@@ -75,42 +115,24 @@ export default async function OrganigramaPage() {
         <InvitarPanel
           rolesDisponibles={rolesInvitables(usuario.rol)}
           pendientes={pendientes}
+          intendentes={intendentes}
+          esIntendente={esIntendente}
+          misListas={misListas}
         />
       )}
 
       {equipo.length === 0 ? (
         <EmptyState
           title="Sin integrantes todavía"
-          description="A medida que se sumen usuarios a la campaña, aparecerán acá organizados por rol."
+          description="A medida que se sumen usuarios a la campaña, aparecerán acá según quién invitó a quién."
         />
       ) : (
-        <div className="space-y-8">
-          {TIERS.map((tier, i) => {
-            const miembros = equipo.filter((m) => tier.roles.includes(m.rol));
-            if (miembros.length === 0) return null;
-            return (
-              <section key={tier.titulo}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-                    {tier.titulo}
-                  </span>
-                  <span className="h-px flex-1 bg-[var(--color-line)]" />
-                </div>
-                {i > 0 && (
-                  <div className="flex justify-center -mt-3 mb-1">
-                    <span className="w-px h-4 bg-[var(--color-line)]" />
-                  </div>
-                )}
-                <div className="flex flex-wrap justify-center gap-4">
-                  {miembros.map((m) => (
-                    <MemberCard key={m.id} m={m} esYo={m.id === usuario.id} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+        <div className="space-y-4">
+          {raices.map((r) => (
+            <Rama key={r.id} nodo={r} hijosDe={hijosDe} yo={usuario.id} nivel={0} />
+          ))}
 
-          <p className="text-xs text-muted text-center pt-2">
+          <p className="text-xs text-muted pt-2">
             Roles del sistema:{" "}
             {(Object.keys(ROLES) as RolUsuario[])
               .map((r) => ROLES[r].label)

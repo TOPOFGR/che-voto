@@ -21,22 +21,31 @@ function nuevoToken(): string {
  */
 export async function crearInvitacion(
   inviter: Usuario,
-  data: { rol: RolUsuario; email?: string | null; nombre?: string | null },
+  data: {
+    rol: RolUsuario;
+    email?: string | null;
+    nombre?: string | null;
+    superior_id?: string | null;
+    lista_id?: string | null;
+  },
 ): Promise<Invitacion> {
   if (!rolesInvitables(inviter.rol).includes(data.rol)) {
     throw new Error("No podés invitar a ese rol.");
   }
   const email = data.email?.trim().toLowerCase() || null;
   const nombre = data.nombre?.trim() || null;
+  const superiorId = data.superior_id || null;
+  const listaId = data.lista_id || null;
 
   const [row] = await sql<Invitacion[]>`
     INSERT INTO invitaciones
-      (campaign_id, token, email, nombre, rol, invited_by, expires_at)
+      (campaign_id, token, email, nombre, rol, invited_by, superior_id, lista_id, expires_at)
     VALUES
       (${inviter.campaign_id}, ${nuevoToken()}, ${email}, ${nombre}, ${data.rol},
-       ${inviter.id}, now() + ${`${EXPIRA_DIAS} days`}::interval)
+       ${inviter.id}, ${superiorId}, ${listaId},
+       now() + ${`${EXPIRA_DIAS} days`}::interval)
     RETURNING id, campaign_id, token, email, nombre, rol, invited_by,
-              estado, accepted_by, expires_at, created_at
+              superior_id, lista_id, estado, accepted_by, expires_at, created_at
   `;
   return row;
 }
@@ -47,6 +56,7 @@ export async function getInvitacionUsable(
 ): Promise<InvitacionDetalle | null> {
   const rows = await sql<InvitacionDetalle[]>`
     SELECT i.id, i.campaign_id, i.token, i.email, i.nombre, i.rol, i.invited_by,
+           i.superior_id, i.lista_id,
            i.estado, i.accepted_by, i.expires_at, i.created_at,
            c.nombre AS campaign_nombre,
            u.nombre AS invitado_por
@@ -81,7 +91,7 @@ export async function aceptarInvitacion(
         AND estado = 'pendiente'
         AND (expires_at IS NULL OR expires_at > now())
       RETURNING id, campaign_id, token, email, nombre, rol, invited_by,
-                estado, accepted_by, expires_at, created_at
+                superior_id, lista_id, estado, accepted_by, expires_at, created_at
     `;
     if (!inv) return { ok: false as const, error: "La invitación no es válida o ya fue usada." };
 
@@ -94,10 +104,14 @@ export async function aceptarInvitacion(
     }
 
     const nombre = (inv.nombre || fallbackNombre || "").trim() || "Sin nombre";
+    // superior_id define la posición en la jerarquía (y la visibilidad hacia
+    // arriba). Se toma el de la invitación (p.ej. el intendente elegido por el
+    // admin para un concejal) y, si no hay, quien invitó. lista_id aplica al concejal.
+    const superiorId = inv.superior_id ?? inv.invited_by;
     const [usuario] = await tx<{ id: string }[]>`
-      INSERT INTO usuarios (campaign_id, auth_provider_id, nombre, email, rol, activo)
+      INSERT INTO usuarios (campaign_id, auth_provider_id, nombre, email, rol, superior_id, lista_id, activo)
       VALUES (${inv.campaign_id}, ${authUserId}, ${nombre},
-              ${email ?? inv.email}, ${inv.rol}, true)
+              ${email ?? inv.email}, ${inv.rol}, ${superiorId}, ${inv.lista_id ?? null}, true)
       RETURNING id
     `;
     await tx`

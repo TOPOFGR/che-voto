@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { invitarMiembro, revocarInvitacionAction, type InvitarState } from "./actions";
 import { ROLES, type RolUsuario } from "@/lib/types";
 import type { InvitacionPendiente } from "@/lib/invitaciones";
+import type { IntendenteConListas } from "@/lib/partidos";
 
 function linkDe(token: string) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -34,15 +35,30 @@ function CopiarLink({ token, className = "" }: { token: string; className?: stri
 export function InvitarPanel({
   rolesDisponibles,
   pendientes,
+  intendentes,
+  esIntendente,
+  misListas,
 }: {
   rolesDisponibles: RolUsuario[];
   pendientes: InvitacionPendiente[];
+  // Para que el admin elija a qué intendente + lista va un concejal.
+  intendentes: IntendenteConListas[];
+  // Si quien invita es intendente, el concejal cuelga de él: sólo elige lista.
+  esIntendente: boolean;
+  misListas: { id: string; etiqueta: string }[];
 }) {
   const [abierto, setAbierto] = useState(false);
+  const [rol, setRol] = useState<RolUsuario>(rolesDisponibles[0]);
+  const [intendenteId, setIntendenteId] = useState("");
   const [state, formAction, isPending] = useActionState<InvitarState | null, FormData>(
     invitarMiembro,
     null,
   );
+
+  const esConcejal = rol === "concejal";
+  const listasDelIntendente = esIntendente
+    ? misListas
+    : intendentes.find((i) => i.id === intendenteId)?.listas ?? [];
 
   return (
     <div className="card p-4 mb-6">
@@ -66,7 +82,14 @@ export function InvitarPanel({
         <form action={formAction} className="mt-4 grid gap-3 sm:grid-cols-3 border-t border-[var(--color-line)] pt-4">
           <div className="sm:col-span-1">
             <label htmlFor="inv-rol" className="label">Rol *</label>
-            <select id="inv-rol" name="rol" required className="field" defaultValue={rolesDisponibles[0]}>
+            <select
+              id="inv-rol"
+              name="rol"
+              required
+              className="field"
+              value={rol}
+              onChange={(e) => setRol(e.target.value as RolUsuario)}
+            >
               {rolesDisponibles.map((r) => (
                 <option key={r} value={r}>{ROLES[r].label}</option>
               ))}
@@ -84,6 +107,40 @@ export function InvitarPanel({
             </label>
             <input id="inv-email" name="email" type="email" className="field" placeholder="juana@correo.com" />
           </div>
+
+          {esConcejal && !esIntendente && (
+            <div className="sm:col-span-1">
+              <label htmlFor="inv-intendente" className="label">Intendente *</label>
+              <select
+                id="inv-intendente"
+                name="superior_id"
+                required
+                className="field"
+                value={intendenteId}
+                onChange={(e) => setIntendenteId(e.target.value)}
+              >
+                <option value="">Elegí un intendente…</option>
+                {intendentes.map((i) => (
+                  <option key={i.id} value={i.id}>{i.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {esConcejal && (
+            <div className="sm:col-span-1">
+              <label htmlFor="inv-lista" className="label">Lista *</label>
+              <select id="inv-lista" name="lista_id" required className="field" defaultValue="">
+                <option value="" disabled>
+                  {listasDelIntendente.length ? "Elegí una lista…" : "El intendente no tiene listas"}
+                </option>
+                {listasDelIntendente.map((l) => (
+                  <option key={l.id} value={l.id}>{l.etiqueta}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="sm:col-span-3">
             <button type="submit" disabled={isPending} className="btn-primary w-full sm:w-auto">
               {isPending ? "Generando…" : "Generar link"}

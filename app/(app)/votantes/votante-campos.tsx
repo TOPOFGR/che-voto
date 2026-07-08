@@ -1,33 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { PinMap } from "./nuevo/pin-map";
 import { FechaInput } from "./fecha-input";
 import { INTENCIONES_PARTIDO, type IntencionPartido } from "@/lib/types";
+import { whatsappUrl } from "@/lib/whatsapp";
 
 const CENTRO_ASUNCION: [number, number] = [-25.2985, -57.6099];
 const PADRON_URL = "https://padron.tsje.gov.py/";
-
-/**
- * Arma el link de wa.me a partir de lo tipeado. WhatsApp exige el número en
- * formato internacional sin "+", espacios ni guiones. Asumimos Paraguay (595):
- * un número local "09xx xxx xxx" pierde el 0 y se le antepone 595.
- * Devuelve null si no hay dígitos suficientes para un número válido.
- */
-function whatsappUrl(telefono: string): string | null {
-  let d = telefono.replace(/\D/g, "");
-  if (!d) return null;
-  if (d.startsWith("595")) {
-    // ya tiene el código de país
-  } else if (d.startsWith("0")) {
-    d = "595" + d.slice(1);
-  } else {
-    d = "595" + d;
-  }
-  // Un móvil paraguayo con código de país tiene 12 dígitos (595 + 9 locales).
-  if (d.length < 11) return null;
-  return `https://wa.me/${d}`;
-}
 
 export interface VotanteInicial {
   nombre?: string | null;
@@ -160,14 +141,14 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
               className="btn-ghost shrink-0 inline-flex items-center gap-1.5 border border-[#25D366] text-[#128C7E] font-medium"
               title="Enviar mensaje por WhatsApp"
             >
-              <span aria-hidden>💬</span> WhatsApp
+              <Image src="/icons/whatsapp.png" alt="" width={16} height={16} aria-hidden /> WhatsApp
             </a>
           ) : (
             <span
               className="btn-ghost shrink-0 inline-flex items-center gap-1.5 border border-[var(--color-line)] text-muted opacity-60 cursor-not-allowed"
               title="Ingresá un número para habilitar WhatsApp"
             >
-              <span aria-hidden>💬</span> WhatsApp
+              <Image src="/icons/whatsapp.png" alt="" width={16} height={16} aria-hidden className="opacity-60" /> WhatsApp
             </span>
           )}
         </div>

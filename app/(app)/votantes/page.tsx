@@ -1,9 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { requireUsuario } from "@/lib/session";
 import { getVotantes } from "@/lib/queries";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { IntencionPartidoBadge, HabilitadoBadge } from "@/components/badges";
 import { AgregarVotanteIcon } from "@/components/icons";
+import { whatsappUrl } from "@/lib/whatsapp";
 import { ROLES_VISION_TOTAL, type IntencionPartido } from "@/lib/types";
 import { Filtros } from "./filtros";
 
@@ -56,34 +58,57 @@ export default async function VotantesPage({
         />
       ) : (
         <ul className="space-y-2.5">
-          {votantes.map((v) => (
-            <li key={v.id}>
-              <Link href={`/votantes/${v.id}`} className="card p-4 block hover:bg-slate-50 transition-colors">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-slate-900">
-                      {v.nombre} {v.apellido ?? ""}
-                    </p>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted mt-0.5">
-                      {v.numero_cedula && <span>CI {v.numero_cedula}</span>}
-                      {v.telefono && <span>{v.telefono}</span>}
-                      {v.precisa_transporte && <span>🚐 Transporte</span>}
-                      {v.estado_voto === "voto" && <span className="text-brand-600">✓ Votó</span>}
-                    </div>
-                    {v.referente_nombre && (
-                      <p className="text-xs text-muted mt-1">
-                        Cargó: {v.referente_nombre}
-                      </p>
-                    )}
+          {votantes.map((v) => {
+            const waUrl = whatsappUrl(v.telefono);
+            return (
+              <li
+                key={v.id}
+                className="card p-4 relative flex items-start justify-between gap-3 hover:bg-slate-50 transition-colors"
+              >
+                {/* Toda la tarjeta navega al detalle vía el pseudo-elemento
+                    estirado (after:inset-0); el botón de WhatsApp queda encima
+                    (relative z-10) para ser cliqueable sin anular ese enlace. */}
+                <Link
+                  href={`/votantes/${v.id}`}
+                  className="min-w-0 flex-1 after:absolute after:inset-0"
+                >
+                  <p className="font-semibold text-slate-900">
+                    {v.nombre} {v.apellido ?? ""}
+                  </p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted mt-0.5">
+                    {v.numero_cedula && <span>CI {v.numero_cedula}</span>}
+                    {v.telefono && <span>{v.telefono}</span>}
+                    {v.precisa_transporte && <span>🚐 Transporte</span>}
+                    {v.estado_voto === "voto" && <span className="text-brand-600">✓ Votó</span>}
                   </div>
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  {v.referente_nombre && (
+                    <p className="text-xs text-muted mt-1">
+                      Cargó: {v.referente_nombre}
+                    </p>
+                  )}
+                </Link>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {waUrl && (
+                    <a
+                      href={waUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Enviar WhatsApp"
+                      aria-label={`Enviar WhatsApp a ${v.nombre} ${v.apellido ?? ""}`.trim()}
+                      className="relative z-10 shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full border border-[#25D366] hover:bg-[#25D366]/10 transition-colors"
+                    >
+                      <Image src="/icons/whatsapp.png" alt="" width={26} height={26} aria-hidden />
+                    </a>
+                  )}
+                  <div className="flex flex-col items-end gap-1.5">
                     <IntencionPartidoBadge intencion={v.intencion_partido} />
                     <HabilitadoBadge habilitado={v.habilitado} />
                   </div>
                 </div>
-              </Link>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

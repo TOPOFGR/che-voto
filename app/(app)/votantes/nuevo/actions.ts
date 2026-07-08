@@ -30,10 +30,8 @@ export async function cargarVotante(
 
   const nombre = str(formData, "nombre");
   if (!nombre) return { error: "El nombre es obligatorio." };
-  const numero_cedula = str(formData, "numero_cedula");
-  if (!numero_cedula) return { error: "La cédula es obligatoria." };
-  const fecha_nacimiento = str(formData, "fecha_nacimiento");
-  if (!fecha_nacimiento) return { error: "La fecha de nacimiento es obligatoria." };
+  const numero_cedula = str(formData, "numero_cedula") || null;
+  const fecha_nacimiento = str(formData, "fecha_nacimiento") || null;
 
   const intencion_partido = formData.get("intencion_partido") as IntencionPartido;
   if (!(intencion_partido in INTENCIONES_PARTIDO)) {

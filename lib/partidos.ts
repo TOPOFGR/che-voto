@@ -88,14 +88,22 @@ export async function crearPartido(
   `;
 }
 
+/**
+ * Crea una lista. Devuelve false si ya existía una con el mismo nombre en ese
+ * partido (misma restricción única que la tabla), para que la acción avise en
+ * vez de duplicar silenciosamente ante un doble submit.
+ */
 export async function crearLista(
   campaignId: string,
   data: { partido_id: string; nombre: string; numero?: string | null },
-): Promise<void> {
-  await sql`
+): Promise<boolean> {
+  const rows = await sql`
     INSERT INTO listas (campaign_id, partido_id, nombre, numero)
     VALUES (${campaignId}, ${data.partido_id}, ${data.nombre}, ${data.numero ?? null})
+    ON CONFLICT (campaign_id, partido_id, nombre) DO NOTHING
+    RETURNING id
   `;
+  return rows.length > 0;
 }
 
 /** Reemplaza el conjunto de listas de un intendente por las dadas. */

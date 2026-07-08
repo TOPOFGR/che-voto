@@ -308,8 +308,8 @@ export interface DatosPadron {
 // Campos que el usuario edita en el alta de votante (sección editable + padrón).
 export interface DatosVotante extends DatosPadron {
   nombre: string;
-  numero_cedula: string;
-  fecha_nacimiento: string;
+  numero_cedula: string | null;
+  fecha_nacimiento: string | null;
   telefono?: string | null;
   precisa_transporte: boolean;
   direccion?: string | null;

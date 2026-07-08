@@ -8,6 +8,27 @@ import { INTENCIONES_PARTIDO, type IntencionPartido } from "@/lib/types";
 const CENTRO_ASUNCION: [number, number] = [-25.2985, -57.6099];
 const PADRON_URL = "https://padron.tsje.gov.py/";
 
+/**
+ * Arma el link de wa.me a partir de lo tipeado. WhatsApp exige el número en
+ * formato internacional sin "+", espacios ni guiones. Asumimos Paraguay (595):
+ * un número local "09xx xxx xxx" pierde el 0 y se le antepone 595.
+ * Devuelve null si no hay dígitos suficientes para un número válido.
+ */
+function whatsappUrl(telefono: string): string | null {
+  let d = telefono.replace(/\D/g, "");
+  if (!d) return null;
+  if (d.startsWith("595")) {
+    // ya tiene el código de país
+  } else if (d.startsWith("0")) {
+    d = "595" + d.slice(1);
+  } else {
+    d = "595" + d;
+  }
+  // Un móvil paraguayo con código de país tiene 12 dígitos (595 + 9 locales).
+  if (d.length < 11) return null;
+  return `https://wa.me/${d}`;
+}
+
 export interface VotanteInicial {
   nombre?: string | null;
   numero_cedula?: string | null;
@@ -49,6 +70,7 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
     habInicial(initial?.habilitado),
   );
   const [precisaTransporte, setPrecisaTransporte] = useState(!!initial?.precisa_transporte);
+  const [telefono, setTelefono] = useState(initial?.telefono ?? "");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     initial?.lat != null && initial?.lng != null
       ? { lat: initial.lat, lng: initial.lng }
@@ -56,6 +78,8 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
   );
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
   const [cedulaCopiada, setCedulaCopiada] = useState(false);
+
+  const waUrl = whatsappUrl(telefono);
 
   function abrirPadron() {
     const cedula = cedulaRef.current?.value?.trim();
@@ -100,17 +124,21 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="numero_cedula" className="label">Cédula *</label>
+          <label htmlFor="numero_cedula" className="label">
+            Cédula <span className="text-muted font-normal">(opcional)</span>
+          </label>
           <input
-            id="numero_cedula" name="numero_cedula" required className="field"
+            id="numero_cedula" name="numero_cedula" className="field"
             placeholder="1234567" inputMode="numeric"
             ref={cedulaRef} defaultValue={initial?.numero_cedula ?? ""}
           />
         </div>
         <div>
-          <label htmlFor="fecha_nacimiento" className="label">Nacimiento *</label>
+          <label htmlFor="fecha_nacimiento" className="label">
+            Nacimiento <span className="text-muted font-normal">(opcional)</span>
+          </label>
           <FechaInput
-            id="fecha_nacimiento" name="fecha_nacimiento" required
+            id="fecha_nacimiento" name="fecha_nacimiento"
             defaultISO={initial?.fecha_nacimiento}
           />
         </div>
@@ -120,10 +148,29 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
         <label htmlFor="telefono" className="label">
           Celular <span className="text-muted font-normal">(opcional)</span>
         </label>
-        <input
-          id="telefono" name="telefono" type="tel" className="field"
-          placeholder="+595 9xx xxx xxx" defaultValue={initial?.telefono ?? ""}
-        />
+        <div className="flex items-center gap-2">
+          <input
+            id="telefono" name="telefono" type="tel" className="field flex-1"
+            placeholder="+595 9xx xxx xxx" value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+          />
+          {waUrl ? (
+            <a
+              href={waUrl} target="_blank" rel="noopener noreferrer"
+              className="btn-ghost shrink-0 inline-flex items-center gap-1.5 border border-[#25D366] text-[#128C7E] font-medium"
+              title="Enviar mensaje por WhatsApp"
+            >
+              <span aria-hidden>💬</span> WhatsApp
+            </a>
+          ) : (
+            <span
+              className="btn-ghost shrink-0 inline-flex items-center gap-1.5 border border-[var(--color-line)] text-muted opacity-60 cursor-not-allowed"
+              title="Ingresá un número para habilitar WhatsApp"
+            >
+              <span aria-hidden>💬</span> WhatsApp
+            </span>
+          )}
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm text-slate-700">

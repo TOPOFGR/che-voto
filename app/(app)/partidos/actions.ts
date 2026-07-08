@@ -47,7 +47,8 @@ export async function crearListaAction(
   if (!partido_id) return { error: "Elegí un partido." };
   if (!nombre) return { error: "El nombre de la lista es obligatorio." };
 
-  await crearLista(usuario.campaign_id, { partido_id, nombre, numero });
+  const creada = await crearLista(usuario.campaign_id, { partido_id, nombre, numero });
+  if (!creada) return { error: "Ya existe una lista con ese nombre en ese partido." };
   revalidatePath("/partidos");
   return { ok: true };
 }

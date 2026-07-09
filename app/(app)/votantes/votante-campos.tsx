@@ -253,13 +253,25 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
             type="button"
             onClick={() => consultarPadron(cedula.trim(), fechaISO)}
             disabled={padronStatus === "loading" || !cedula.trim() || !fechaISO}
-            className="btn-ghost border border-[var(--color-line)] shrink-0 disabled:opacity-50"
+            className="btn-ghost border border-[var(--color-line)] shrink-0 disabled:opacity-50 inline-flex items-center gap-2"
           >
+            {padronStatus === "loading" && (
+              <span
+                aria-hidden
+                className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-brand-600 border-t-transparent"
+              />
+            )}
             {padronStatus === "loading" ? "Consultando…" : "Consultar TSJE"}
           </button>
         </div>
         {padronStatus === "loading" ? (
-          <p className="text-xs text-muted mt-1">Consultando el padrón del TSJE…</p>
+          <p className="text-xs text-muted mt-1 flex items-center gap-2" role="status">
+            <span
+              aria-hidden
+              className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand-600 border-t-transparent"
+            />
+            Consultando el padrón del TSJE…
+          </p>
         ) : padronStatus === "error" ? (
           <p className="text-xs text-accent-700 mt-1">
             No se pudo consultar el TSJE.{" "}

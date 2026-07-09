@@ -161,12 +161,12 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="numero_cedula" className="label">
+          <label htmlFor="cedula_identidad" className="label">
             Cédula <span className="text-muted font-normal">(opcional)</span>
           </label>
           <input
-            id="numero_cedula" name="numero_cedula" className="field"
-            placeholder="1234567" inputMode="numeric"
+            id="cedula_identidad" name="cedula_identidad" className="field"
+            placeholder="1234567" inputMode="numeric" autoComplete="off"
             value={cedula} onChange={(e) => setCedula(e.target.value)}
           />
         </div>

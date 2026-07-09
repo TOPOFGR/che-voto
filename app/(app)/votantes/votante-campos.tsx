@@ -110,7 +110,7 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
           </label>
           <input
             id="numero_cedula" name="numero_cedula" className="field"
-            placeholder="1234567" inputMode="numeric"
+            placeholder="1234567" inputMode="numeric" autoComplete="off"
             ref={cedulaRef} defaultValue={initial?.numero_cedula ?? ""}
           />
         </div>

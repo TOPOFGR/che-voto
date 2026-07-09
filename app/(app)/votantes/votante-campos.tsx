@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { PinMap } from "./nuevo/pin-map";
 import { FechaInput } from "./fecha-input";
+import { consultarPadronAction } from "./padron-action";
 import { INTENCIONES_PARTIDO, type IntencionPartido } from "@/lib/types";
 import { whatsappUrl } from "@/lib/whatsapp";
 
@@ -35,17 +36,18 @@ function habInicial(h?: boolean | null): "" | "true" | "false" {
 }
 
 /**
- * Campos del votante: sección editable + captura del padrón (manual, interim) + GPS.
+ * Campos del votante: sección editable + consulta del padrón TSJE + GPS.
  * No incluye el <form> ni el submit: el padre los aporta (alta vs edición usan
  * acciones distintas).
  *
- * Padrón (modo captura manual): el TSJE está detrás de Sucuri WAF + reCAPTCHA v2,
- * que no permite consulta server-to-server ni embeber su página (X-Frame-Options +
- * sin CORS). Hasta tener el dataset oficial, el botón abre el TSJE en otra pestaña
- * y el usuario copia acá el resultado. Los campos se envían como inputs normales.
+ * Padrón: al completar cédula + fecha de nacimiento se consulta el TSJE vía
+ * server action (consultarPadronAction) y se autocompletan habilitación y
+ * ubicación de voto. Los campos quedan editables como fallback manual por si
+ * el TSJE no responde (o vuelve a poner captcha); en ese caso un link abre la
+ * página del TSJE en otra pestaña, con la cédula copiada al portapapeles.
  */
 export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
-  const cedulaRef = useRef<HTMLInputElement>(null);
+  const nombreRef = useRef<HTMLInputElement>(null);
 
   const [habilitado, setHabilitado] = useState<"" | "true" | "false">(
     habInicial(initial?.habilitado),
@@ -60,13 +62,66 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
   const [cedulaCopiada, setCedulaCopiada] = useState(false);
 
+  // Insumos y resultado de la consulta al padrón.
+  const [cedula, setCedula] = useState(initial?.numero_cedula ?? "");
+  const [fechaISO, setFechaISO] = useState(initial?.fecha_nacimiento ?? "");
+  const [padron, setPadron] = useState({
+    distrito: initial?.padron_distrito ?? "",
+    departamento: initial?.padron_departamento ?? "",
+    zona: initial?.padron_zona ?? "",
+    local: initial?.padron_local ?? "",
+  });
+  const [padronStatus, setPadronStatus] = useState<"idle" | "loading" | "error">("idle");
+  // Última combinación cédula|fecha consultada (o ya cargada al editar), para
+  // no repetir la misma consulta ni disparar una al montar el form de edición.
+  const consultadoRef = useRef(
+    initial?.habilitado != null
+      ? `${(initial?.numero_cedula ?? "").trim()}|${initial?.fecha_nacimiento ?? ""}`
+      : "",
+  );
+  const requestIdRef = useRef(0);
+
   const waUrl = whatsappUrl(telefono);
 
+  async function consultarPadron(ced: string, fecha: string) {
+    consultadoRef.current = `${ced}|${fecha}`;
+    const reqId = ++requestIdRef.current;
+    setPadronStatus("loading");
+    const res = await consultarPadronAction(ced, fecha);
+    if (reqId !== requestIdRef.current) return; // llegó tarde: ya hay otra consulta
+    if (!res.ok) {
+      setPadronStatus("error");
+      return;
+    }
+    const r = res.result;
+    setPadronStatus("idle");
+    setHabilitado(r.habilitado ? "true" : "false");
+    setPadron({
+      distrito: r.distrito ?? "",
+      departamento: r.departamento ?? "",
+      zona: r.zona ?? "",
+      local: r.local ?? "",
+    });
+    // Autocompleta el nombre desde el padrón si todavía no se cargó.
+    if (r.nombre && nombreRef.current && !nombreRef.current.value.trim()) {
+      nombreRef.current.value = r.nombre;
+    }
+  }
+
+  // Consulta automática (con debounce) apenas hay cédula + fecha completas.
+  useEffect(() => {
+    const ced = cedula.trim();
+    if (!ced || !fechaISO || `${ced}|${fechaISO}` === consultadoRef.current) return;
+    const t = setTimeout(() => consultarPadron(ced, fechaISO), 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cedula, fechaISO]);
+
   function abrirPadron() {
-    const cedula = cedulaRef.current?.value?.trim();
-    if (cedula) {
+    const ced = cedula.trim();
+    if (ced) {
       navigator.clipboard
-        ?.writeText(cedula)
+        ?.writeText(ced)
         .then(() => {
           setCedulaCopiada(true);
           setTimeout(() => setCedulaCopiada(false), 2500);
@@ -100,6 +155,7 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
         <input
           id="nombre" name="nombre" required className="field"
           placeholder="Nombre y apellido" defaultValue={initial?.nombre ?? ""}
+          ref={nombreRef}
         />
       </div>
 
@@ -111,7 +167,7 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
           <input
             id="numero_cedula" name="numero_cedula" className="field"
             placeholder="1234567" inputMode="numeric"
-            ref={cedulaRef} defaultValue={initial?.numero_cedula ?? ""}
+            value={cedula} onChange={(e) => setCedula(e.target.value)}
           />
         </div>
         <div>
@@ -121,6 +177,7 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
           <FechaInput
             id="fecha_nacimiento" name="fecha_nacimiento"
             defaultISO={initial?.fecha_nacimiento}
+            onChangeISO={setFechaISO}
           />
         </div>
       </div>
@@ -188,20 +245,46 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
         </select>
       </div>
 
-      {/* --- Padrón electoral (captura manual, interim) --- */}
+      {/* --- Padrón electoral (consulta automática al TSJE) --- */}
       <div className="rounded-xl border border-[var(--color-line)] p-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-medium text-slate-700">Padrón electoral</p>
           <button
-            type="button" onClick={abrirPadron}
-            className="btn-ghost border border-[var(--color-line)] shrink-0"
+            type="button"
+            onClick={() => consultarPadron(cedula.trim(), fechaISO)}
+            disabled={padronStatus === "loading" || !cedula.trim() || !fechaISO}
+            className="btn-ghost border border-[var(--color-line)] shrink-0 disabled:opacity-50 inline-flex items-center gap-2"
           >
-            {cedulaCopiada ? "Cédula copiada ✓" : "Abrir padrón TSJE ↗"}
+            {padronStatus === "loading" && (
+              <span
+                aria-hidden
+                className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-brand-600 border-t-transparent"
+              />
+            )}
+            {padronStatus === "loading" ? "Consultando…" : "Consultar TSJE"}
           </button>
         </div>
-        <p className="text-xs text-muted mt-1">
-          Abrí el TSJE, consultá con la cédula (se copia sola) y copiá el resultado acá.
-        </p>
+        {padronStatus === "loading" ? (
+          <p className="text-xs text-muted mt-1 flex items-center gap-2" role="status">
+            <span
+              aria-hidden
+              className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-brand-600 border-t-transparent"
+            />
+            Consultando el padrón del TSJE…
+          </p>
+        ) : padronStatus === "error" ? (
+          <p className="text-xs text-accent-700 mt-1">
+            No se pudo consultar el TSJE.{" "}
+            <button type="button" onClick={abrirPadron} className="underline">
+              {cedulaCopiada ? "Cédula copiada ✓" : "Consultá manualmente ↗"}
+            </button>{" "}
+            y cargá el resultado acá.
+          </p>
+        ) : (
+          <p className="text-xs text-muted mt-1">
+            Con cédula y fecha de nacimiento, la consulta al TSJE se hace sola.
+          </p>
+        )}
 
         <div className="mt-3">
           <label htmlFor="habilitado" className="label">Habilitación</label>
@@ -231,22 +314,26 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
           <div>
             <label htmlFor="padron_distrito" className="label">Distrito</label>
             <input id="padron_distrito" name="padron_distrito" className="field"
-              defaultValue={initial?.padron_distrito ?? ""} />
+              value={padron.distrito}
+              onChange={(e) => setPadron((p) => ({ ...p, distrito: e.target.value }))} />
           </div>
           <div>
             <label htmlFor="padron_departamento" className="label">Departamento</label>
             <input id="padron_departamento" name="padron_departamento" className="field"
-              defaultValue={initial?.padron_departamento ?? ""} />
+              value={padron.departamento}
+              onChange={(e) => setPadron((p) => ({ ...p, departamento: e.target.value }))} />
           </div>
           <div>
             <label htmlFor="padron_zona" className="label">Zona</label>
             <input id="padron_zona" name="padron_zona" className="field"
-              defaultValue={initial?.padron_zona ?? ""} />
+              value={padron.zona}
+              onChange={(e) => setPadron((p) => ({ ...p, zona: e.target.value }))} />
           </div>
           <div>
             <label htmlFor="padron_local" className="label">Local</label>
             <input id="padron_local" name="padron_local" className="field"
-              defaultValue={initial?.padron_local ?? ""} />
+              value={padron.local}
+              onChange={(e) => setPadron((p) => ({ ...p, local: e.target.value }))} />
           </div>
         </div>
       </div>

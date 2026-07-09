@@ -42,13 +42,20 @@ export function FechaInput({
   name,
   defaultISO,
   required,
+  onChangeISO,
 }: {
   id?: string;
   name: string;
   defaultISO?: string | null;
   required?: boolean;
+  // Notifica al padre cada vez que hay una fecha completa válida ("" si no).
+  onChangeISO?: (iso: string) => void;
 }) {
-  const [iso, setIso] = useState(defaultISO ?? "");
+  const [iso, setIsoState] = useState(defaultISO ?? "");
+  const setIso = (v: string) => {
+    setIsoState(v);
+    onChangeISO?.(v);
+  };
   const dateRef = useRef<HTMLInputElement>(null);
   const [texto, setTexto] = useState(isoADisplay(defaultISO ?? ""));
   const invalida = texto.length === 10 && !iso;

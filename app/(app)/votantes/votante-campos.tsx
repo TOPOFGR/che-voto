@@ -5,6 +5,7 @@ import Image from "next/image";
 import { PinMap } from "./nuevo/pin-map";
 import { FechaInput } from "./fecha-input";
 import { consultarPadronAction } from "./padron-action";
+import { importarUbicacionGoogleMaps } from "./google-maps-action";
 import { INTENCIONES_PARTIDO, type IntencionPartido } from "@/lib/types";
 import { whatsappUrl } from "@/lib/whatsapp";
 
@@ -61,6 +62,11 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
   );
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
   const [cedulaCopiada, setCedulaCopiada] = useState(false);
+
+  // Importar ubicación desde un link de Google Maps.
+  const [mapsUrl, setMapsUrl] = useState("");
+  const [mapsStatus, setMapsStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [mapsError, setMapsError] = useState<string | null>(null);
 
   // Insumos y resultado de la consulta al padrón.
   const [cedula, setCedula] = useState(initial?.numero_cedula ?? "");
@@ -145,6 +151,23 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
       () => setGeoStatus("No se pudo obtener la ubicación. Revisá los permisos."),
       { enableHighAccuracy: true, timeout: 10000 },
     );
+  }
+
+  async function importarDesdeMaps() {
+    const url = mapsUrl.trim();
+    if (!url) return;
+    setMapsStatus("loading");
+    setMapsError(null);
+    const res = await importarUbicacionGoogleMaps(url);
+    if (!res.ok) {
+      setMapsStatus("error");
+      setMapsError(res.error);
+      return;
+    }
+    setCoords(res.coords);
+    setMapsStatus("idle");
+    setMapsUrl("");
+    setGeoStatus(null);
   }
 
   return (
@@ -358,6 +381,58 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
             </button>
           </div>
         </div>
+        {/* Importar desde un link de Google Maps */}
+        <div className="mb-3">
+          <label htmlFor="maps_url" className="label">
+            Pegar link de Google Maps{" "}
+            <span className="text-muted font-normal">(opcional)</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="maps_url"
+              type="url"
+              inputMode="url"
+              className="field flex-1"
+              placeholder="https://maps.app.goo.gl/…"
+              value={mapsUrl}
+              onChange={(e) => {
+                setMapsUrl(e.target.value);
+                if (mapsStatus === "error") {
+                  setMapsStatus("idle");
+                  setMapsError(null);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  importarDesdeMaps();
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={importarDesdeMaps}
+              disabled={mapsStatus === "loading" || !mapsUrl.trim()}
+              className="btn-ghost border border-[var(--color-line)] shrink-0 disabled:opacity-50 inline-flex items-center gap-2"
+            >
+              {mapsStatus === "loading" && (
+                <span
+                  aria-hidden
+                  className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-brand-600 border-t-transparent"
+                />
+              )}
+              {mapsStatus === "loading" ? "Importando…" : "Importar"}
+            </button>
+          </div>
+          {mapsStatus === "error" && mapsError ? (
+            <p className="text-xs text-accent-700 mt-1">{mapsError}</p>
+          ) : (
+            <p className="text-xs text-muted mt-1">
+              Compartí un lugar desde la app de Google Maps y pegá el link acá.
+            </p>
+          )}
+        </div>
+
         <div className="h-56 rounded-lg overflow-hidden relative isolate z-0">
           <PinMap value={coords} onChange={setCoords} center={CENTRO_ASUNCION} />
         </div>

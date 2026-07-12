@@ -5,6 +5,7 @@ import { RolBadge } from "@/components/badges";
 import { ChevotoMark } from "@/components/icons";
 import { TopNav, BottomNav } from "@/components/app-nav";
 import { SignOutButton } from "@/components/sign-out-button";
+import { Avatar } from "@/components/avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -39,12 +40,24 @@ export default async function AppLayout({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-sm font-medium text-slate-800 max-w-[140px] truncate">
-                {usuario.nombre}
-              </span>
-              <RolBadge rol={usuario.rol} />
-            </div>
+            <Link
+              href="/perfil"
+              title="Mi perfil"
+              className="flex items-center gap-2 rounded-lg hover:bg-slate-100 py-1 pl-1 pr-2 -mr-1"
+            >
+              <div className="hidden sm:flex flex-col items-end leading-tight">
+                <span className="text-sm font-medium text-slate-800 max-w-[140px] truncate">
+                  {usuario.nombre}
+                </span>
+                <RolBadge rol={usuario.rol} />
+              </div>
+              <Avatar
+                id={usuario.id}
+                nombre={usuario.nombre}
+                fotoUpdatedAt={usuario.foto_updated_at}
+                size={36}
+              />
+            </Link>
             <SignOutButton />
           </div>
         </div>

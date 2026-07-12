@@ -14,6 +14,7 @@ const PADRON_URL = "https://padron.tsje.gov.py/";
 
 export interface VotanteInicial {
   nombre?: string | null;
+  sobrenombre?: string | null;
   numero_cedula?: string | null;
   fecha_nacimiento?: string | null;
   telefono?: string | null;
@@ -47,8 +48,24 @@ function habInicial(h?: boolean | null): "" | "true" | "false" {
  * el TSJE no responde (o vuelve a poner captcha); en ese caso un link abre la
  * página del TSJE en otra pestaña, con la cédula copiada al portapapeles.
  */
-export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
+export function VotanteCampos({
+  initial,
+  colapsable = false,
+}: {
+  initial?: VotanteInicial;
+  /**
+   * Alta simplificada: sólo Nombre, Sobrenombre y Celular quedan a la vista y el
+   * resto (cédula, padrón, ubicación, etc.) se despliega con el botón verde "+".
+   * En edición se deja en false para mostrar todos los campos ya cargados.
+   */
+  colapsable?: boolean;
+}) {
   const nombreRef = useRef<HTMLInputElement>(null);
+
+  // Cuando es colapsable arranca contraído; el botón "+" muestra el resto.
+  // Los campos ocultos siguen montados (sólo se esconden), así conservan sus
+  // valores por defecto —p. ej. la intención— al enviar el formulario.
+  const [expandido, setExpandido] = useState(!colapsable);
 
   const [habilitado, setHabilitado] = useState<"" | "true" | "false">(
     habInicial(initial?.habilitado),
@@ -172,7 +189,7 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* --- Sección editable --- */}
+      {/* --- Campos primarios (siempre visibles) --- */}
       <div>
         <label htmlFor="nombre" className="label">Nombre *</label>
         <input
@@ -182,27 +199,15 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="cedula_identidad" className="label">
-            Cédula <span className="text-muted font-normal">(opcional)</span>
-          </label>
-          <input
-            id="cedula_identidad" name="cedula_identidad" className="field"
-            placeholder="1234567" inputMode="numeric" autoComplete="off"
-            value={cedula} onChange={(e) => setCedula(e.target.value)}
-          />
-        </div>
-        <div>
-          <label htmlFor="fecha_nacimiento" className="label">
-            Nacimiento <span className="text-muted font-normal">(opcional)</span>
-          </label>
-          <FechaInput
-            id="fecha_nacimiento" name="fecha_nacimiento"
-            defaultISO={initial?.fecha_nacimiento}
-            onChangeISO={setFechaISO}
-          />
-        </div>
+      <div>
+        <label htmlFor="sobrenombre" className="label">
+          Sobrenombre <span className="text-muted font-normal">(opcional)</span>
+        </label>
+        <input
+          id="sobrenombre" name="sobrenombre" className="field"
+          placeholder="Cómo lo conocen en el barrio"
+          defaultValue={initial?.sobrenombre ?? ""}
+        />
       </div>
 
       <div>
@@ -231,6 +236,50 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
               <Image src="/icons/whatsapp.png" alt="" width={16} height={16} aria-hidden className="opacity-60" /> WhatsApp
             </span>
           )}
+        </div>
+      </div>
+
+      {/* Botón verde "+": despliega el resto de los campos en el alta simplificada. */}
+      {colapsable && !expandido && (
+        <div className="flex flex-col items-center gap-2 py-1">
+          <button
+            type="button"
+            onClick={() => setExpandido(true)}
+            aria-expanded={false}
+            aria-label="Agregar más datos del votante"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700 transition-colors"
+            style={{ boxShadow: "var(--shadow-cta)" }}
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          </button>
+          <span className="text-xs text-muted">Agregar más datos</span>
+        </div>
+      )}
+
+      {/* --- Campos adicionales: se ocultan (sin desmontar) hasta tocar "+" --- */}
+      <div className={`flex flex-col gap-4 ${colapsable && !expandido ? "hidden" : ""}`}>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="cedula_identidad" className="label">
+            Cédula <span className="text-muted font-normal">(opcional)</span>
+          </label>
+          <input
+            id="cedula_identidad" name="cedula_identidad" className="field"
+            placeholder="1234567" inputMode="numeric" autoComplete="off"
+            value={cedula} onChange={(e) => setCedula(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="fecha_nacimiento" className="label">
+            Nacimiento <span className="text-muted font-normal">(opcional)</span>
+          </label>
+          <FechaInput
+            id="fecha_nacimiento" name="fecha_nacimiento"
+            defaultISO={initial?.fecha_nacimiento}
+            onChangeISO={setFechaISO}
+          />
         </div>
       </div>
 
@@ -439,6 +488,7 @@ export function VotanteCampos({ initial }: { initial?: VotanteInicial }) {
         {geoStatus && <p className="text-xs text-accent-600 mt-2">{geoStatus}</p>}
         <input type="hidden" name="lat" value={coords?.lat ?? ""} />
         <input type="hidden" name="lng" value={coords?.lng ?? ""} />
+      </div>
       </div>
     </div>
   );

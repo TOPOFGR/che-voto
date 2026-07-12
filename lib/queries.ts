@@ -59,6 +59,7 @@ async function getSubordinadoIds(usuario: Usuario): Promise<string[]> {
 export interface VotanteRow {
   id: string;
   nombre: string;
+  sobrenombre: string | null;
   apellido: string | null;
   telefono: string | null;
   numero_cedula: string | null;
@@ -120,7 +121,8 @@ export async function getVotantes(
   if (filtros.q) {
     const like = `%${filtros.q}%`;
     conditions.push(
-      sql`(p.nombre ILIKE ${like} OR p.apellido ILIKE ${like}
+      sql`(p.nombre ILIKE ${like} OR p.sobrenombre ILIKE ${like}
+          OR p.apellido ILIKE ${like}
           OR p.numero_cedula ILIKE ${like} OR p.telefono ILIKE ${like})`,
     );
   }
@@ -132,7 +134,7 @@ export async function getVotantes(
   const where = conditions.reduce((acc, c) => sql`${acc} AND ${c}`);
 
   return sql<VotanteRow[]>`
-    SELECT p.id, p.nombre, p.apellido, p.telefono, p.numero_cedula, p.direccion,
+    SELECT p.id, p.nombre, p.sobrenombre, p.apellido, p.telefono, p.numero_cedula, p.direccion,
            p.territorio_id, t.nombre AS territorio_nombre,
            p.habilitado, p.precisa_transporte,
            v.intencion_partido, v.estado_voto, v.fue_buscado, v.agradecido,
@@ -309,6 +311,7 @@ export interface DatosPadron {
 // Campos que el usuario edita en el alta de votante (sección editable + padrón).
 export interface DatosVotante extends DatosPadron {
   nombre: string;
+  sobrenombre?: string | null;
   numero_cedula: string | null;
   fecha_nacimiento: string | null;
   telefono?: string | null;
@@ -329,12 +332,13 @@ export async function createVotante(usuario: Usuario, data: DatosVotante) {
 
     const [persona] = await tx<{ id: string }[]>`
       INSERT INTO personas
-        (campaign_id, numero_cedula, nombre, telefono, direccion, ubicacion,
+        (campaign_id, numero_cedula, nombre, sobrenombre, telefono, direccion, ubicacion,
          fecha_nacimiento, precisa_transporte, habilitado,
          padron_distrito, padron_departamento, padron_zona, padron_local,
          padron_consultado_at, fuente_dato)
       VALUES
         (${usuario.campaign_id}, ${data.numero_cedula}, ${data.nombre},
+         ${data.sobrenombre ?? null},
          ${data.telefono ?? null}, ${data.direccion ?? null}, ${ubic},
          ${data.fecha_nacimiento}, ${data.precisa_transporte}, ${data.habilitado ?? null},
          ${data.padron_distrito ?? null}, ${data.padron_departamento ?? null},
@@ -358,6 +362,7 @@ export async function createVotante(usuario: Usuario, data: DatosVotante) {
 export interface VotanteDetalle {
   id: string;
   nombre: string;
+  sobrenombre: string | null;
   numero_cedula: string | null;
   telefono: string | null;
   direccion: string | null;
@@ -385,7 +390,7 @@ export async function getVotante(
   const scope = await getScope(usuario);
   const cond = scopeCondition(usuario, scope);
   const rows = await sql<VotanteDetalle[]>`
-    SELECT p.id, p.nombre, p.numero_cedula, p.telefono, p.direccion,
+    SELECT p.id, p.nombre, p.sobrenombre, p.numero_cedula, p.telefono, p.direccion,
            to_char(p.fecha_nacimiento, 'YYYY-MM-DD') AS fecha_nacimiento,
            p.precisa_transporte, p.habilitado,
            p.padron_distrito, p.padron_departamento, p.padron_zona, p.padron_local,
@@ -425,6 +430,7 @@ export async function updateVotante(
     await tx`
       UPDATE personas SET
         nombre = ${data.nombre},
+        sobrenombre = ${data.sobrenombre ?? null},
         numero_cedula = ${data.numero_cedula},
         telefono = ${data.telefono ?? null},
         direccion = ${data.direccion ?? null},

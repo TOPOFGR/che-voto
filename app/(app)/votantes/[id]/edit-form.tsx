@@ -15,6 +15,7 @@ export function EditarVotanteForm({ votante }: { votante: VotanteDetalle }) {
       <VotanteCampos
         initial={{
           nombre: votante.nombre,
+          sobrenombre: votante.sobrenombre,
           numero_cedula: votante.numero_cedula,
           fecha_nacimiento: votante.fecha_nacimiento,
           telefono: votante.telefono,

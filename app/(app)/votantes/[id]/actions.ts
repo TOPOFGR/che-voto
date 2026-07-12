@@ -45,6 +45,7 @@ export async function actualizarVotante(
 
   const ok = await updateVotante(usuario, id, {
     nombre,
+    sobrenombre: str(formData, "sobrenombre") || null,
     numero_cedula,
     fecha_nacimiento,
     telefono: str(formData, "telefono") || null,

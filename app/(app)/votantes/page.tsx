@@ -74,6 +74,9 @@ export default async function VotantesPage({
                 >
                   <p className="font-semibold text-slate-900">
                     {v.nombre} {v.apellido ?? ""}
+                    {v.sobrenombre && (
+                      <span className="font-normal text-muted"> «{v.sobrenombre}»</span>
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted mt-0.5">
                     {v.numero_cedula && <span>CI {v.numero_cedula}</span>}

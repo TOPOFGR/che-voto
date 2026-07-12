@@ -46,6 +46,7 @@ export async function cargarVotante(
 
   await createVotante(usuario, {
     nombre,
+    sobrenombre: str(formData, "sobrenombre") || null,
     numero_cedula,
     fecha_nacimiento,
     telefono: str(formData, "telefono") || null,

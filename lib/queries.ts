@@ -1,5 +1,6 @@
 import "server-only";
 import sql from "@/lib/db";
+import { slugify } from "@/lib/slug";
 import { ROLES_VISION_TOTAL } from "@/lib/types";
 import type {
   Campaign,
@@ -74,6 +75,8 @@ export interface VotanteRow {
   referente_id: string | null;
   referente_nombre: string | null;
   tiene_ubicacion: boolean;
+  // 'carga_manual' | 'formulario_publico' | ... — marca a los que se sumaron solos.
+  fuente_dato: string | null;
   created_at: string;
 }
 
@@ -140,6 +143,7 @@ export async function getVotantes(
            v.intencion_partido, v.estado_voto, v.fue_buscado, v.agradecido,
            v.referente_id, r.nombre AS referente_nombre,
            (p.ubicacion IS NOT NULL) AS tiene_ubicacion,
+           p.fuente_dato,
            p.created_at
     FROM personas p
     LEFT JOIN vinculos_campania v ON v.persona_id = p.id AND v.campaign_id = p.campaign_id
@@ -359,6 +363,152 @@ export async function createVotante(usuario: Usuario, data: DatosVotante) {
   });
 }
 
+/**
+ * Devuelve el slug público del usuario, generándolo (y persistiéndolo) la
+ * primera vez. Base = kebab-case del nombre; ante colisión agrega sufijo
+ * numérico (`nombre-2`, `-3`, …). El índice único parcial `usuarios_slug_key`
+ * es la garantía real de unicidad: si dos requests corren a la vez, el UPDATE
+ * perdedor viola el índice, lo reintentamos leyendo el slug ya asignado.
+ */
+export async function getOrCreateSlugForUsuario(usuario: Usuario): Promise<string> {
+  if (usuario.slug) return usuario.slug;
+
+  const base = slugify(usuario.nombre) || "usuario";
+  for (let intento = 0; intento < 25; intento++) {
+    const candidato = intento === 0 ? base : `${base}-${intento + 1}`;
+    const tomado = await sql<{ id: string }[]>`
+      SELECT id FROM usuarios WHERE slug = ${candidato} LIMIT 1
+    `;
+    if (tomado.length) continue;
+    try {
+      const [row] = await sql<{ slug: string }[]>`
+        UPDATE usuarios SET slug = ${candidato}, updated_at = now()
+        WHERE id = ${usuario.id} AND slug IS NULL
+        RETURNING slug
+      `;
+      // Ya tenía uno (otro request ganó): devolvé el vigente.
+      if (!row) {
+        const [actual] = await sql<{ slug: string | null }[]>`
+          SELECT slug FROM usuarios WHERE id = ${usuario.id} LIMIT 1
+        `;
+        if (actual?.slug) return actual.slug;
+        continue;
+      }
+      return row.slug;
+    } catch {
+      // Colisión en el índice único: probamos el siguiente sufijo.
+      continue;
+    }
+  }
+  // Fallback improbable: cae al id (siempre único) para no romper el link.
+  await sql`UPDATE usuarios SET slug = ${usuario.id} WHERE id = ${usuario.id} AND slug IS NULL`;
+  return usuario.id;
+}
+
+/**
+ * Personaliza el link "Quiero apoyar": guarda el nombre a mostrar y regenera el
+ * slug a partir de él (con sufijo numérico ante colisión con OTRO usuario).
+ * El nombre a mostrar alimenta encabezado, stickers y slug (como el mockup).
+ * Devuelve el slug resultante (puede diferir de lo tipeado si hubo colisión).
+ */
+export async function actualizarLinkApoyo(
+  usuario: Usuario,
+  apoyoNombre: string,
+): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
+  const nombre = apoyoNombre.trim();
+  if (nombre.length < 3) {
+    return { ok: false, error: "El nombre a mostrar es muy corto." };
+  }
+  const base = slugify(nombre);
+  if (!base) {
+    return { ok: false, error: "Usá al menos una letra o número en el nombre." };
+  }
+
+  for (let intento = 0; intento < 25; intento++) {
+    const candidato = intento === 0 ? base : `${base}-${intento + 1}`;
+    // ¿Lo tiene otro usuario? (el propio no cuenta: puede re-guardar su slug)
+    const tomado = await sql<{ id: string }[]>`
+      SELECT id FROM usuarios WHERE slug = ${candidato} AND id <> ${usuario.id} LIMIT 1
+    `;
+    if (tomado.length) continue;
+    try {
+      await sql`
+        UPDATE usuarios
+        SET apoyo_nombre = ${nombre}, slug = ${candidato}, updated_at = now()
+        WHERE id = ${usuario.id}
+      `;
+      return { ok: true, slug: candidato };
+    } catch {
+      // Colisión de carrera en el índice único: probamos el siguiente sufijo.
+      continue;
+    }
+  }
+  return { ok: false, error: "No pudimos generar un link con ese nombre. Probá otro." };
+}
+
+export interface DirigentePublico {
+  id: string;
+  nombre: string;
+  apoyo_nombre: string | null;
+  campaign_id: string;
+  foto_updated_at: string | null;
+}
+
+/** Resolve the sharing dirigente behind a public /apoyar/<slug> link. */
+export async function getDirigentePorSlug(
+  slug: string,
+): Promise<DirigentePublico | null> {
+  const rows = await sql<DirigentePublico[]>`
+    SELECT id, nombre, apoyo_nombre, campaign_id, foto_updated_at
+    FROM usuarios
+    WHERE slug = ${slug} AND activo = true
+    LIMIT 1
+  `;
+  return rows[0] ?? null;
+}
+
+export interface DatosApoyoPublico {
+  nombre: string;
+  telefono: string;
+  numero_cedula: string | null;
+  direccion: string | null;
+  quiere_stickers: boolean;
+  quiere_voluntario: boolean;
+}
+
+/**
+ * Alta de un votante desde el formulario público "Quiero apoyar". No hay sesión:
+ * la campaña y el referente salen del `dirigente` ya resuelto por el slug (nunca
+ * de datos del cliente). Se marca `fuente_dato = 'formulario_publico'` para
+ * distinguirlos en la lista. Espeja la tx de createVotante.
+ */
+export async function crearApoyoPublico(
+  dirigente: DirigentePublico,
+  data: DatosApoyoPublico,
+): Promise<string> {
+  return sql.begin(async (tx) => {
+    const [persona] = await tx<{ id: string }[]>`
+      INSERT INTO personas
+        (campaign_id, nombre, telefono, numero_cedula, direccion, fuente_dato)
+      VALUES
+        (${dirigente.campaign_id}, ${data.nombre}, ${data.telefono},
+         ${data.numero_cedula}, ${data.direccion}, 'formulario_publico')
+      RETURNING id
+    `;
+
+    await tx`
+      INSERT INTO vinculos_campania
+        (campaign_id, persona_id, referente_id, intencion_partido, estado_voto,
+         quiere_stickers, quiere_voluntario)
+      VALUES
+        (${dirigente.campaign_id}, ${persona.id}, ${dirigente.id},
+         'desconozco', 'pendiente', ${data.quiere_stickers}, ${data.quiere_voluntario})
+    `;
+
+    return persona.id;
+  });
+}
+
 export interface VotanteDetalle {
   id: string;
   nombre: string;
@@ -377,9 +527,12 @@ export interface VotanteDetalle {
   estado_voto: EstadoVoto | null;
   fue_buscado: boolean;
   agradecido: boolean;
+  quiere_stickers: boolean;
+  quiere_voluntario: boolean;
   lat: number | null;
   lng: number | null;
   referente_id: string | null;
+  fuente_dato: string | null;
 }
 
 /** A single voter, only if it's visible to the user (hierarchy scope). */
@@ -395,8 +548,9 @@ export async function getVotante(
            p.precisa_transporte, p.habilitado,
            p.padron_distrito, p.padron_departamento, p.padron_zona, p.padron_local,
            v.intencion_partido, v.estado_voto, v.fue_buscado, v.agradecido,
+           v.quiere_stickers, v.quiere_voluntario,
            ST_Y(p.ubicacion::geometry) AS lat, ST_X(p.ubicacion::geometry) AS lng,
-           v.referente_id
+           v.referente_id, p.fuente_dato
     FROM personas p
     LEFT JOIN vinculos_campania v ON v.persona_id = p.id AND v.campaign_id = p.campaign_id
     WHERE p.id = ${id} AND ${cond}

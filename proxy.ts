@@ -67,9 +67,9 @@ export const config = {
   // assets, any path with a file extension (everything served from `public/`,
   // e.g. /icons/whatsapp.png — the image optimizer fetches these internally with
   // no auth cookie, so a redirect here 400s the optimizer), and the
-  // public/unauthenticated areas (auth pages, invitation acceptance), which must
-  // not be redirected to sign-in.
+  // public/unauthenticated areas (auth pages, invitation acceptance, the public
+  // "Quiero apoyar" form), which must not be redirected to sign-in.
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|auth|invitacion|.*\\..*).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|auth|invitacion|apoyar|.*\\..*).*)",
   ],
 };

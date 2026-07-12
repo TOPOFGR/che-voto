@@ -57,6 +57,11 @@ export interface Usuario {
   nivel_dirigente: number | null;
   // Lista única del concejal (los intendentes usan intendente_listas para N listas).
   lista_id: string | null;
+  // Identificador público estable para el link "Quiero apoyar" (/apoyar/<slug>).
+  slug: string | null;
+  // Nombre público personalizable del link (p.ej. "Jaz Concejal"); de acá sale
+  // el slug, el encabezado y los stickers. Si es null, se usa `nombre`.
+  apoyo_nombre: string | null;
   activo: boolean;
   // Timestamp de la última foto de perfil (null = sin foto). Los bytes viven en
   // la tabla `usuario_fotos`; acá sólo el flag/cache-buster (ver migración 05).

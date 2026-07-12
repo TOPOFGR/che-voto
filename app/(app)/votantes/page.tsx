@@ -1,13 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { requireUsuario } from "@/lib/session";
-import { getVotantes } from "@/lib/queries";
+import { getVotantes, getOrCreateSlugForUsuario } from "@/lib/queries";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { IntencionPartidoBadge, HabilitadoBadge } from "@/components/badges";
 import { AgregarVotanteIcon } from "@/components/icons";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { ROLES_VISION_TOTAL, type IntencionPartido } from "@/lib/types";
 import { Filtros } from "./filtros";
+import { MiLinkApoyo } from "./mi-link-apoyo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function VotantesPage({
 }) {
   const usuario = await requireUsuario();
   const sp = await searchParams;
+  const slug = await getOrCreateSlugForUsuario(usuario);
 
   const votantes = await getVotantes(usuario, {
     q: sp.q?.trim() || undefined,
@@ -42,6 +44,8 @@ export default async function VotantesPage({
           </Link>
         }
       />
+
+      <MiLinkApoyo slug={slug} apoyoNombre={usuario.apoyo_nombre?.trim() || usuario.nombre} />
 
       <Filtros />
 
@@ -76,6 +80,11 @@ export default async function VotantesPage({
                     {v.nombre} {v.apellido ?? ""}
                     {v.sobrenombre && (
                       <span className="font-normal text-muted"> «{v.sobrenombre}»</span>
+                    )}
+                    {v.fuente_dato === "formulario_publico" && (
+                      <span className="chip bg-brand-100 text-brand-700 ml-2 align-middle">
+                        Se sumó solo/a
+                      </span>
                     )}
                   </p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted mt-0.5">

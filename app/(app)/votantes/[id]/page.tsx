@@ -28,6 +28,26 @@ export default async function VotanteDetallePage({
           </Link>
         }
       />
+
+      {votante.fuente_dato === "formulario_publico" && (
+        <div className="card p-4 mb-4">
+          <p className="text-sm font-medium text-slate-700">
+            Se sumó por el formulario público
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {votante.quiere_stickers && (
+              <span className="chip bg-brand-100 text-brand-700">Quiere stickers</span>
+            )}
+            {votante.quiere_voluntario && (
+              <span className="chip bg-brand-100 text-brand-700">Voluntario/a</span>
+            )}
+            {!votante.quiere_stickers && !votante.quiere_voluntario && (
+              <span className="chip bg-slate-100 text-slate-500">Sin preferencia</span>
+            )}
+          </div>
+        </div>
+      )}
+
       <EditarVotanteForm votante={votante} />
     </div>
   );

@@ -272,6 +272,7 @@ export interface MiembroEquipo {
   superior_id: string | null;
   superior_nombre: string | null;
   activo: boolean;
+  foto_updated_at: string | null;
   votantes_cargados: number;
 }
 
@@ -288,7 +289,7 @@ export async function getEquipo(usuario: Usuario): Promise<MiembroEquipo[]> {
           AND u.id = ANY(${sql.array(scope.referenteIds)}::uuid[])`;
   return sql<MiembroEquipo[]>`
     SELECT u.id, u.nombre, u.email, u.telefono, u.rol, u.activo,
-      u.superior_id, s.nombre AS superior_nombre,
+      u.superior_id, s.nombre AS superior_nombre, u.foto_updated_at,
       (SELECT count(*)::int FROM vinculos_campania vc WHERE vc.referente_id = u.id) AS votantes_cargados
     FROM usuarios u
     LEFT JOIN usuarios s ON s.id = u.superior_id
@@ -449,4 +450,55 @@ export async function updateVotante(
     `;
   });
   return true;
+}
+
+// --- Perfil propio -----------------------------------------------------------
+
+export interface ActualizarPerfil {
+  nombre: string;
+  // Foto ya redimensionada en el cliente (o null si no se cambia).
+  foto?: { bytes: Buffer; mime: string } | null;
+  // Borrar la foto actual (tiene prioridad sobre `foto`).
+  eliminarFoto?: boolean;
+}
+
+/**
+ * Actualiza el nombre (y opcionalmente la foto) del usuario logueado. Los bytes
+ * de la foto se guardan en `usuario_fotos`; en `usuarios` sólo se toca el
+ * `foto_updated_at` que actúa de flag + cache-buster del avatar.
+ */
+export async function actualizarMiPerfil(
+  usuario: Usuario,
+  data: ActualizarPerfil,
+): Promise<void> {
+  await sql.begin(async (tx) => {
+    await tx`
+      UPDATE usuarios
+      SET nombre = ${data.nombre}, updated_at = now()
+      WHERE id = ${usuario.id}
+    `;
+
+    if (data.eliminarFoto) {
+      await tx`DELETE FROM usuario_fotos WHERE usuario_id = ${usuario.id}`;
+      await tx`UPDATE usuarios SET foto_updated_at = NULL WHERE id = ${usuario.id}`;
+    } else if (data.foto) {
+      await tx`
+        INSERT INTO usuario_fotos (usuario_id, data, mime, updated_at)
+        VALUES (${usuario.id}, ${data.foto.bytes}, ${data.foto.mime}, now())
+        ON CONFLICT (usuario_id)
+        DO UPDATE SET data = EXCLUDED.data, mime = EXCLUDED.mime, updated_at = now()
+      `;
+      await tx`UPDATE usuarios SET foto_updated_at = now() WHERE id = ${usuario.id}`;
+    }
+  });
+}
+
+/** Bytes + mime de la foto de perfil de un usuario (para el route handler). */
+export async function getFotoPerfil(
+  usuarioId: string,
+): Promise<{ data: Buffer; mime: string } | null> {
+  const rows = await sql<{ data: Buffer; mime: string }[]>`
+    SELECT data, mime FROM usuario_fotos WHERE usuario_id = ${usuarioId} LIMIT 1
+  `;
+  return rows[0] ?? null;
 }

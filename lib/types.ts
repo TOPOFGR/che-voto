@@ -58,6 +58,9 @@ export interface Usuario {
   // Lista única del concejal (los intendentes usan intendente_listas para N listas).
   lista_id: string | null;
   activo: boolean;
+  // Timestamp de la última foto de perfil (null = sin foto). Los bytes viven en
+  // la tabla `usuario_fotos`; acá sólo el flag/cache-buster (ver migración 05).
+  foto_updated_at: string | null;
   created_at: string;
   updated_at: string;
   campaign_nombre?: string;

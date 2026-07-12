@@ -5,6 +5,7 @@ import { getIntendentes, getListasDeIntendente } from "@/lib/partidos";
 import Link from "next/link";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { RolBadge } from "@/components/badges";
+import { Avatar } from "@/components/avatar";
 import { PadronIcon } from "@/components/icons";
 import { ROLES, puedeInvitar, rolesInvitables, type RolUsuario } from "@/lib/types";
 import { InvitarPanel } from "./invitar";
@@ -19,9 +20,12 @@ function MemberCard({ m, esYo }: { m: MiembroEquipo; esYo: boolean }) {
       } ${!m.activo ? "opacity-60" : ""}`}
     >
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold shrink-0">
-          {m.nombre.slice(0, 1).toUpperCase()}
-        </div>
+        <Avatar
+          id={m.id}
+          nombre={m.nombre}
+          fotoUpdatedAt={m.foto_updated_at}
+          size={40}
+        />
         <div className="min-w-0">
           <p className="font-semibold text-slate-900 text-sm truncate">
             {m.nombre} {esYo && <span className="text-brand-600">(vos)</span>}

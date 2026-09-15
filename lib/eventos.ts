@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import sql from "@/lib/db";
+import { getScope, scopeCondition } from "@/lib/queries";
 import { slugify } from "@/lib/slug";
 import {
   ROLES_QUE_CREAN_EVENTOS,
@@ -255,20 +256,35 @@ export interface Inscripto {
   edad: number | null;
   barrio: string | null;
   ciudad: string | null;
+  // "DD/MM HH:MM" en hora de Paraguay.
   inscripto_at: string;
+  // true si el usuario puede abrir la ficha del votante (/votantes/<id>). Puede
+  // ser false cuando la persona ya estaba cargada por otro equipo: la
+  // inscripción no le cambia el referente, así que queda fuera de su alcance.
+  visible: boolean;
 }
 
+// Tope de inscriptos que trae la pantalla del evento (el total real sale de
+// `evento.inscriptos`, contado en la DB).
+export const INSCRIPTOS_MAX = 1000;
+
 /** Inscriptos de un evento. Llamar sólo después de validar acceso con getEvento. */
-export async function getInscriptos(eventoId: string): Promise<Inscripto[]> {
+export async function getInscriptos(
+  usuario: Usuario,
+  eventoId: string,
+): Promise<Inscripto[]> {
+  const alcance = scopeCondition(usuario, await getScope(usuario));
   return sql<Inscripto[]>`
     SELECT p.id AS persona_id, p.nombre, p.numero_cedula, p.telefono, p.genero,
            p.edad, p.barrio, p.ciudad,
-           to_char(a.created_at AT TIME ZONE ${TZ}, 'DD/MM HH24:MI') AS inscripto_at
+           to_char(a.created_at AT TIME ZONE ${TZ}, 'DD/MM HH24:MI') AS inscripto_at,
+           coalesce((${alcance}), false) AS visible
     FROM asistencias_evento a
     JOIN personas p ON p.id = a.persona_id
+    LEFT JOIN vinculos_campania v ON v.persona_id = p.id AND v.campaign_id = p.campaign_id
     WHERE a.evento_id = ${eventoId}
     ORDER BY a.created_at DESC
-    LIMIT 1000
+    LIMIT ${INSCRIPTOS_MAX}
   `;
 }
 

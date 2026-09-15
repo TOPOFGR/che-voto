@@ -5,7 +5,7 @@ import { formatearFechaEvento } from "@/lib/eventos-config";
 import { Avatar } from "@/components/avatar";
 import { CalendarioIcon, ChevotoMark, PinUbicacionIcon } from "@/components/icons";
 import { ROLES } from "@/lib/types";
-import { Descripcion } from "./descripcion";
+import { DescripcionEvento } from "@/components/descripcion-evento";
 import { InscripcionForm } from "./inscripcion-form";
 
 export const dynamic = "force-dynamic";
@@ -141,7 +141,7 @@ export default async function EventoPublicoPage({
               </div>
             )}
 
-            {evento.descripcion && <Descripcion texto={evento.descripcion} />}
+            {evento.descripcion && <DescripcionEvento texto={evento.descripcion} />}
           </div>
         </article>
 

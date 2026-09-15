@@ -1,16 +1,25 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { requireUsuario } from "@/lib/session";
-import { getCreadoresPosibles, getEvento, getInscriptos } from "@/lib/eventos";
-import { SEXOS, type Sexo } from "@/lib/eventos-config";
-import { whatsappUrl } from "@/lib/whatsapp";
-import { ROLES_VISION_TOTAL } from "@/lib/types";
+import { getEvento, getInscriptos, INSCRIPTOS_MAX } from "@/lib/eventos";
+import { formatearFechaEvento } from "@/lib/eventos-config";
 import { PageHeader } from "@/components/ui";
-import { EventoForm } from "../evento-form";
+import { CalendarioIcon } from "@/components/icons";
+import { DescripcionEvento } from "@/components/descripcion-evento";
 import { CompartirEvento } from "../compartir-evento";
+import { InscriptosLista } from "./inscriptos-lista";
 
 export const dynamic = "force-dynamic";
+
+/** "12 mujeres · 8 varones" — resumen rápido de quiénes se anotaron. */
+function resumenGenero(generos: (string | null)[]): string | null {
+  const mujeres = generos.filter((g) => g === "F").length;
+  const varones = generos.filter((g) => g === "M").length;
+  const partes: string[] = [];
+  if (mujeres) partes.push(`${mujeres} ${mujeres === 1 ? "mujer" : "mujeres"}`);
+  if (varones) partes.push(`${varones} ${varones === 1 ? "varón" : "varones"}`);
+  return partes.length ? partes.join(" · ") : null;
+}
 
 export default async function EventoPage({
   params,
@@ -25,17 +34,18 @@ export default async function EventoPage({
 
   const evento = await getEvento(usuario, id);
   if (!evento) notFound();
-  const [inscriptos, creadores] = await Promise.all([
-    getInscriptos(evento.id),
-    // El administrador puede reasignar el evento a otro intendente o concejal.
-    ROLES_VISION_TOTAL.includes(usuario.rol) ? getCreadoresPosibles(usuario) : undefined,
-  ]);
+  const inscriptos = await getInscriptos(usuario, evento.id);
+
+  const fecha = evento.inicia_local ? formatearFechaEvento(evento.inicia_local) : null;
+  const resumen = resumenGenero(inscriptos.map((i) => i.genero));
+  const truncado = inscriptos.length >= INSCRIPTOS_MAX;
+  const total = `${evento.inscriptos} ${evento.inscriptos === 1 ? "inscripto" : "inscriptos"}`;
 
   return (
     <div className="max-w-lg mx-auto">
       <PageHeader
-        title="Editar evento"
-        subtitle={evento.nombre}
+        title={evento.nombre}
+        subtitle={total}
         action={
           <Link href="/eventos" className="btn-ghost">
             Volver
@@ -49,52 +59,74 @@ export default async function EventoPage({
         </p>
       )}
 
+      {/* --- Datos del evento (compacto: lo importante acá son los inscriptos) --- */}
+      <section className="card p-4 mb-4 flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          {evento.foto_v ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/api/evento/${evento.slug}/foto?v=${evento.foto_v}`}
+              alt={`Foto de ${evento.nombre}`}
+              className="w-16 h-16 rounded-xl object-cover bg-slate-100 shrink-0"
+            />
+          ) : (
+            <span className="w-16 h-16 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0">
+              <CalendarioIcon className="w-6 h-6" />
+            </span>
+          )}
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="first-letter:uppercase text-slate-700">
+              {fecha ?? <span className="text-muted">Sin fecha definida</span>}
+            </p>
+            {evento.direccion && <p className="text-muted">{evento.direccion}</p>}
+            {evento.creador_nombre && evento.creador_id !== usuario.id && (
+              <p className="text-muted">Es de: {evento.creador_nombre}</p>
+            )}
+            {evento.link_saber_mas && (
+              <a
+                href={evento.link_saber_mas}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-700 hover:underline break-all"
+              >
+                {evento.link_saber_mas}
+              </a>
+            )}
+          </div>
+        </div>
+
+        {evento.descripcion && <DescripcionEvento texto={evento.descripcion} />}
+
+        <Link href={`/eventos/${evento.id}/editar`} className="btn-ghost self-start">
+          Editar evento
+        </Link>
+      </section>
+
       <CompartirEvento slug={evento.slug} nombre={evento.nombre} />
 
-      <EventoForm evento={evento} creadores={creadores} />
+      {/* --- Inscriptos --- */}
+      <section className="card p-4">
+        <div className="mb-3">
+          <h2 className="font-semibold text-slate-900">
+            Inscriptos <span className="text-muted font-normal">({evento.inscriptos})</span>
+          </h2>
+          {resumen && <p className="text-xs text-muted mt-0.5">{resumen}</p>}
+        </div>
 
-      <section className="card p-4 mt-4">
-        <h2 className="font-semibold text-slate-900 mb-3">
-          Inscriptos <span className="text-muted font-normal">({inscriptos.length})</span>
-        </h2>
         {inscriptos.length === 0 ? (
-          <p className="text-sm text-muted">Todavía no se inscribió nadie.</p>
+          <p className="text-sm text-muted">
+            Todavía no se inscribió nadie. Compartí el link de inscripción y acá vas a ver a
+            cada persona que se anote.
+          </p>
         ) : (
-          <ul className="divide-y divide-[var(--color-line)]">
-            {inscriptos.map((i) => {
-              const waUrl = whatsappUrl(i.telefono);
-              const sexo = i.genero && i.genero in SEXOS ? SEXOS[i.genero as Sexo] : null;
-              return (
-                <li key={i.persona_id} className="py-2.5 flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-900 truncate">{i.nombre}</p>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
-                      {i.numero_cedula && <span>CI {i.numero_cedula}</span>}
-                      {sexo && <span>{sexo}</span>}
-                      {i.edad != null && <span>{i.edad} años</span>}
-                      {(i.barrio || i.ciudad) && (
-                        <span>{[i.barrio, i.ciudad].filter(Boolean).join(", ")}</span>
-                      )}
-                      {i.telefono && <span>{i.telefono}</span>}
-                      <span>Se inscribió {i.inscripto_at}</span>
-                    </div>
-                  </div>
-                  {waUrl && (
-                    <a
-                      href={waUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Enviar WhatsApp"
-                      aria-label={`Enviar WhatsApp a ${i.nombre}`}
-                      className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full border border-[#25D366] hover:bg-[#25D366]/10 transition-colors"
-                    >
-                      <Image src="/icons/whatsapp.png" alt="" width={24} height={24} aria-hidden />
-                    </a>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            <InscriptosLista inscriptos={inscriptos} />
+            {truncado && (
+              <p className="text-xs text-muted mt-3">
+                Mostrando los últimos {INSCRIPTOS_MAX} inscriptos.
+              </p>
+            )}
+          </>
         )}
       </section>
     </div>

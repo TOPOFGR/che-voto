@@ -42,9 +42,14 @@ async function leerEvento(
     return { error: `El nombre puede tener hasta ${NOMBRE_EVENTO_MAX} caracteres.` };
   }
 
-  const descripcion = str(formData, "descripcion");
+  // El navegador envía los saltos de línea del textarea como CRLF, pero el
+  // contador y el maxLength del cliente cuentan cada salto como 1 carácter:
+  // normalizamos a LF antes de medir (y guardar) para contar igual que el form.
+  const descripcion = str(formData, "descripcion").replace(/\r\n?/g, "\n");
   if (descripcion.length > DESCRIPCION_MAX) {
-    return { error: `La descripción puede tener hasta ${DESCRIPCION_MAX} caracteres.` };
+    return {
+      error: `La descripción puede tener hasta ${DESCRIPCION_MAX} caracteres (tiene ${descripcion.length}).`,
+    };
   }
 
   const iniciaLocal = str(formData, "inicia_local");

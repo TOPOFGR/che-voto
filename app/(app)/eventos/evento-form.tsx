@@ -62,11 +62,9 @@ export function EventoForm({
     if (state && "ok" in state && fileRef.current) fileRef.current.value = "";
   }, [state]);
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+  // Los object URL del preview se revocan al reemplazarlos (handlePick /
+  // quitarFoto), no en el cleanup de un effect: en StrictMode ese cleanup corre
+  // al montar y revocaba el preview vigente (imagen rota).
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -150,39 +148,38 @@ export function EventoForm({
       {/* --- Foto --- */}
       <div>
         <p className="label">Foto del evento</p>
+        {/* Un único input de archivo, siempre montado. Si viviera dentro del
+            placeholder, al elegir la foto se desmontaría junto con el archivo
+            elegido y el evento se guardaría sin foto. */}
+        <input
+          ref={fileRef}
+          id="ev-foto"
+          type="file"
+          name="foto"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handlePick}
+          className="hidden"
+        />
         {fotoSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={fotoSrc}
             alt="Foto del evento"
-            className="w-full max-h-72 rounded-xl object-cover bg-slate-100"
+            className="w-full max-h-72 rounded-xl object-contain bg-slate-100"
           />
         ) : (
-          <label className="flex h-40 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--color-line)] bg-slate-50 text-sm text-muted hover:bg-slate-100">
+          <label
+            htmlFor="ev-foto"
+            className="flex h-40 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--color-line)] bg-slate-50 text-sm text-muted hover:bg-slate-100"
+          >
             <span className="text-2xl" aria-hidden>📷</span>
             Tocá para agregar una foto
-            <input
-              ref={fileRef}
-              type="file"
-              name="foto"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handlePick}
-              className="hidden"
-            />
           </label>
         )}
         {fotoSrc && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <label className="btn-ghost cursor-pointer">
+            <label htmlFor="ev-foto" className="btn-ghost cursor-pointer">
               Cambiar foto
-              <input
-                ref={fileRef}
-                type="file"
-                name="foto"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handlePick}
-                className="hidden"
-              />
             </label>
             <button type="button" onClick={quitarFoto} className="text-sm text-accent-700 hover:underline">
               Quitar foto

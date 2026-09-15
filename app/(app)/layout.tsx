@@ -6,6 +6,7 @@ import { ChevotoMark } from "@/components/icons";
 import { TopNav, BottomNav } from "@/components/app-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Avatar } from "@/components/avatar";
+import { ROLES_QUE_CREAN_EVENTOS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function AppLayout({
           </Link>
 
           <div className="flex-1 flex justify-center">
-            <TopNav />
+            <TopNav mostrarEventos={ROLES_QUE_CREAN_EVENTOS.includes(usuario.rol)} />
           </div>
 
           <div className="flex items-center gap-2 shrink-0">

@@ -306,10 +306,22 @@ export interface DatosInscripcion {
  * `fuente_dato='evento'`. El vínculo va al creador del evento salvo que la
  * persona ya tenga referente (vinculos_campania es único por persona).
  */
+export interface ResultadoInscripcion {
+  /** Ya tenía asistencia a este evento. */
+  yaInscripto: boolean;
+  personaId: string;
+  /**
+   * false = la cédula ya estaba en la campaña y se reusó esa persona, así que
+   * los datos que cargó en el formulario NO se guardaron. Se registra para poder
+   * detectar el caso (dos personas con la misma cédula cargada).
+   */
+  personaNueva: boolean;
+}
+
 export async function inscribirEnEvento(
   evento: Pick<EventoPublico, "id" | "campaign_id" | "creador_id">,
   data: DatosInscripcion,
-): Promise<{ yaInscripto: boolean }> {
+): Promise<ResultadoInscripcion> {
   return sql.begin(async (tx) => {
     const [existente] = await tx<{ id: string }[]>`
       SELECT id FROM personas
@@ -320,6 +332,7 @@ export async function inscribirEnEvento(
     `;
 
     let personaId: string;
+    const personaNueva = !existente;
     if (existente) {
       personaId = existente.id;
     } else {
@@ -351,6 +364,6 @@ export async function inscribirEnEvento(
       RETURNING persona_id
     `;
 
-    return { yaInscripto: nueva.length === 0 };
+    return { yaInscripto: nueva.length === 0, personaId, personaNueva };
   });
 }

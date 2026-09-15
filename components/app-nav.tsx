@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelIcon, VotantesIcon, MapaIcon, MilitanteIcon, AgregarVotanteIcon } from "@/components/icons";
+import {
+  PanelIcon,
+  VotantesIcon,
+  MapaIcon,
+  MilitanteIcon,
+  AgregarVotanteIcon,
+  CalendarioIcon,
+} from "@/components/icons";
 
 // El catálogo de partidos/listas no va en la navegación: el admin entra
 // desde el botón "Partidos y listas" en Equipo (/organigrama).
@@ -13,16 +20,21 @@ const ITEMS = [
   { href: "/organigrama", label: "Equipo", icon: MilitanteIcon, exact: false },
 ];
 
+// Sólo en la barra de escritorio: en mobile rompería el botón central "Cargar"
+// (ahí se entra desde la tarjeta de Inicio).
+const EVENTOS_ITEM = { href: "/eventos", label: "Eventos", icon: CalendarioIcon, exact: false };
+
 function isActive(pathname: string, href: string, exact: boolean) {
   return exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 }
 
-/** Desktop: horizontal links in the header. */
-export function TopNav() {
+/** Desktop: horizontal links in the header. `mostrarEventos` for roles that create events. */
+export function TopNav({ mostrarEventos = false }: { mostrarEventos?: boolean }) {
   const pathname = usePathname();
+  const items = mostrarEventos ? [...ITEMS, EVENTOS_ITEM] : ITEMS;
   return (
     <nav className="hidden md:flex items-center gap-1">
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const active = isActive(pathname, item.href, item.exact);
         return (
           <Link

@@ -3,13 +3,18 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUsuario } from "@/lib/session";
-import { crearEvento, actualizarEvento, type DatosEvento } from "@/lib/eventos";
+import {
+  crearEvento,
+  actualizarEvento,
+  getCreadorPosible,
+  type DatosEvento,
+} from "@/lib/eventos";
 import {
   DESCRIPCION_MAX,
   NOMBRE_EVENTO_MAX,
   normalizarLink,
 } from "@/lib/eventos-config";
-import { ROLES_QUE_CREAN_EVENTOS } from "@/lib/types";
+import { ROLES_QUE_CREAN_EVENTOS, ROLES_VISION_TOTAL } from "@/lib/types";
 
 export type EventoState = { error: string } | { ok: true } | null;
 
@@ -30,7 +35,7 @@ function coordenada(valor: string, max: number): number | null {
 
 async function leerEvento(
   formData: FormData,
-): Promise<{ error: string } | { datos: DatosEvento }> {
+): Promise<{ error: string } | { datos: Omit<DatosEvento, "creador_id"> }> {
   const nombre = str(formData, "nombre");
   if (nombre.length < 3) return { error: "Poné un nombre para el evento." };
   if (nombre.length > NOMBRE_EVENTO_MAX) {
@@ -86,8 +91,9 @@ async function leerEvento(
 /**
  * Crea (sin `id`) o edita (con `id`) un evento. Sólo intendentes, concejales y
  * el administrador; la edición además exige ser el creador (o administrador),
- * lo valida `actualizarEvento`. Al crear redirige a la pantalla del evento para
- * compartir el link.
+ * lo valida `actualizarEvento`. El administrador elige a nombre de quién es el
+ * evento (`creador_id`, revalidado en el server); el resto crea a su nombre. Al
+ * crear redirige a la pantalla del evento para compartir el link.
  */
 export async function guardarEvento(
   _prev: EventoState,
@@ -101,16 +107,26 @@ export async function guardarEvento(
   const res = await leerEvento(formData);
   if ("error" in res) return res;
 
+  let creadorId = usuario.id;
+  if (ROLES_VISION_TOTAL.includes(usuario.rol)) {
+    const elegido = str(formData, "creador_id");
+    if (!elegido) return { error: "Elegí de quién es el evento." };
+    const creador = await getCreadorPosible(usuario, elegido);
+    if (!creador) return { error: "Elegí un intendente o concejal válido." };
+    creadorId = creador.id;
+  }
+  const datos: DatosEvento = { ...res.datos, creador_id: creadorId };
+
   const id = str(formData, "id");
   if (id) {
-    const ok = await actualizarEvento(usuario, id, res.datos);
+    const ok = await actualizarEvento(usuario, id, datos);
     if (!ok) return { error: "No encontramos el evento o no podés editarlo." };
     revalidatePath(`/eventos/${id}`);
     revalidatePath("/eventos");
     return { ok: true };
   }
 
-  const nuevoId = await crearEvento(usuario, res.datos);
+  const nuevoId = await crearEvento(usuario, datos);
   revalidatePath("/eventos");
   redirect(`/eventos/${nuevoId}?creado=1`);
 }

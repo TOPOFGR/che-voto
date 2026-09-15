@@ -2,9 +2,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { requireUsuario } from "@/lib/session";
-import { getEvento, getInscriptos } from "@/lib/eventos";
+import { getCreadoresPosibles, getEvento, getInscriptos } from "@/lib/eventos";
 import { SEXOS, type Sexo } from "@/lib/eventos-config";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { ROLES_VISION_TOTAL } from "@/lib/types";
 import { PageHeader } from "@/components/ui";
 import { EventoForm } from "../evento-form";
 import { CompartirEvento } from "../compartir-evento";
@@ -24,7 +25,11 @@ export default async function EventoPage({
 
   const evento = await getEvento(usuario, id);
   if (!evento) notFound();
-  const inscriptos = await getInscriptos(evento.id);
+  const [inscriptos, creadores] = await Promise.all([
+    getInscriptos(evento.id),
+    // El administrador puede reasignar el evento a otro intendente o concejal.
+    ROLES_VISION_TOTAL.includes(usuario.rol) ? getCreadoresPosibles(usuario) : undefined,
+  ]);
 
   return (
     <div className="max-w-lg mx-auto">
@@ -46,7 +51,7 @@ export default async function EventoPage({
 
       <CompartirEvento slug={evento.slug} nombre={evento.nombre} />
 
-      <EventoForm evento={evento} />
+      <EventoForm evento={evento} creadores={creadores} />
 
       <section className="card p-4 mt-4">
         <h2 className="font-semibold text-slate-900 mb-3">

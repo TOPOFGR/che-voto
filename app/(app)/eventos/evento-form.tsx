@@ -10,13 +10,23 @@ import {
   DESCRIPCION_PREVIEW,
   NOMBRE_EVENTO_MAX,
 } from "@/lib/eventos-config";
-import type { Evento } from "@/lib/eventos";
+import { ROLES } from "@/lib/types";
+import type { CreadorOpcion, Evento } from "@/lib/eventos";
 
 const CENTRO_ASUNCION: [number, number] = [-25.2985, -57.6099];
 const FOTO_MAX_LADO = 1280; // px — la foto del evento se ve a lo ancho de la pantalla.
 
-/** Alta (sin `evento`) y edición (con `evento`) de un evento. */
-export function EventoForm({ evento }: { evento?: Evento }) {
+/**
+ * Alta (sin `evento`) y edición (con `evento`) de un evento. `creadores` sólo
+ * llega para el administrador: muestra el selector de a nombre de quién es.
+ */
+export function EventoForm({
+  evento,
+  creadores,
+}: {
+  evento?: Evento;
+  creadores?: CreadorOpcion[];
+}) {
   const [state, formAction, isPending] = useActionState<EventoState, FormData>(
     guardarEvento,
     null,
@@ -183,6 +193,32 @@ export function EventoForm({ evento }: { evento?: Evento }) {
           <p className="text-xs text-muted mt-1">Se quitará la foto al guardar.</p>
         )}
       </div>
+
+      {/* --- De quién es (sólo administrador) --- */}
+      {creadores && (
+        <div>
+          <label htmlFor="ev-creador" className="label">¿De quién es el evento? *</label>
+          <select
+            id="ev-creador"
+            name="creador_id"
+            required
+            className="field"
+            defaultValue={evento?.creador_id ?? ""}
+          >
+            <option value="" disabled>
+              Elegí un intendente o concejal
+            </option>
+            {creadores.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre} · {ROLES[c.rol].label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted mt-1">
+            Su foto aparece en el link y quienes se inscriban quedan como sus votantes.
+          </p>
+        </div>
+      )}
 
       {/* --- Nombre --- */}
       <div>

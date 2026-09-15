@@ -2,7 +2,12 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import sql from "@/lib/db";
 import { slugify } from "@/lib/slug";
-import { ROLES_VISION_TOTAL, type RolUsuario, type Usuario } from "@/lib/types";
+import {
+  ROLES_QUE_CREAN_EVENTOS,
+  ROLES_VISION_TOTAL,
+  type RolUsuario,
+  type Usuario,
+} from "@/lib/types";
 import type { Sexo } from "@/lib/eventos-config";
 
 // Las fechas se cargan y muestran en hora de Paraguay.
@@ -92,7 +97,49 @@ export async function getEventoPorSlug(slug: string): Promise<EventoPublico | nu
   return rows[0] ?? null;
 }
 
+export interface CreadorOpcion {
+  id: string;
+  nombre: string;
+  rol: RolUsuario;
+}
+
+/**
+ * Usuarios activos de la campaña a nombre de quienes el administrador puede
+ * crear un evento (intendentes y concejales primero, después administradores).
+ */
+export async function getCreadoresPosibles(usuario: Usuario): Promise<CreadorOpcion[]> {
+  return sql<CreadorOpcion[]>`
+    SELECT id, nombre, rol
+    FROM usuarios
+    WHERE campaign_id = ${usuario.campaign_id}
+      AND activo = true
+      AND rol::text = ANY(${sql.array(ROLES_QUE_CREAN_EVENTOS)})
+    ORDER BY CASE rol WHEN 'intendente' THEN 0 WHEN 'concejal' THEN 1 ELSE 2 END, nombre
+  `;
+}
+
+/** Valida un creador elegido por el administrador (misma campaña, activo, rol habilitado). */
+export async function getCreadorPosible(
+  usuario: Usuario,
+  id: string,
+): Promise<CreadorOpcion | null> {
+  if (!UUID_RE.test(id)) return null;
+  const rows = await sql<CreadorOpcion[]>`
+    SELECT id, nombre, rol
+    FROM usuarios
+    WHERE id = ${id}
+      AND campaign_id = ${usuario.campaign_id}
+      AND activo = true
+      AND rol::text = ANY(${sql.array(ROLES_QUE_CREAN_EVENTOS)})
+    LIMIT 1
+  `;
+  return rows[0] ?? null;
+}
+
 export interface DatosEvento {
+  // Dueño del evento: su foto va en el link y los inscriptos quedan como sus
+  // votantes. Es el usuario logueado, o el elegido por el administrador.
+  creador_id: string;
   nombre: string;
   descripcion: string | null;
   direccion: string | null;
@@ -129,7 +176,7 @@ export async function crearEvento(usuario: Usuario, data: DatosEvento): Promise<
         (campaign_id, creador_id, slug, nombre, descripcion, direccion, ubicacion,
          inicia_at, link_saber_mas)
       VALUES
-        (${usuario.campaign_id}, ${usuario.id}, ${slug}, ${data.nombre},
+        (${usuario.campaign_id}, ${data.creador_id}, ${slug}, ${data.nombre},
          ${data.descripcion}, ${data.direccion}, ${ubic}, ${inicia}, ${data.link_saber_mas})
       RETURNING id
     `;
@@ -166,7 +213,8 @@ export async function actualizarEvento(
 
     await tx`
       UPDATE eventos
-      SET nombre = ${data.nombre}, descripcion = ${data.descripcion},
+      SET creador_id = ${data.creador_id},
+          nombre = ${data.nombre}, descripcion = ${data.descripcion},
           direccion = ${data.direccion}, ubicacion = ${ubic}, inicia_at = ${inicia},
           link_saber_mas = ${data.link_saber_mas}, updated_at = now()
       WHERE id = ${id}

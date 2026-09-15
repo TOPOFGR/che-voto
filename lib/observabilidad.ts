@@ -48,6 +48,8 @@ export interface Intento {
   /** false = se reusó una persona ya cargada y sus datos se descartaron. */
   personaNueva?: boolean | null;
   yaInscripto?: boolean | null;
+  /** Cuántos reintentos hicieron falta por errores de conexión (0 = ninguno). */
+  reintentos?: number | null;
   ipHash?: string | null;
   userAgent?: string | null;
   duracionMs?: number | null;
@@ -99,6 +101,7 @@ function emitirLinea(intento: Intento): void {
     evento_id: intento.eventoId ?? undefined,
     persona_nueva: intento.personaNueva ?? undefined,
     ya_inscripto: intento.yaInscripto ?? undefined,
+    reintentos: intento.reintentos || undefined,
     duracion_ms: intento.duracionMs ?? undefined,
   };
   if (intento.resultado === "error") console.error(JSON.stringify(linea));
@@ -121,11 +124,13 @@ async function persistir(i: Intento): Promise<void> {
     await sql`
       INSERT INTO inscripcion_intentos
         (origen, codigo, resultado, motivo, slug, evento_id, persona_id,
-         persona_nueva, ya_inscripto, ip_hash, user_agent, duracion_ms, payload)
+         persona_nueva, ya_inscripto, reintentos, ip_hash, user_agent, duracion_ms,
+         payload)
       VALUES
         (${i.origen}, ${i.codigo}, ${i.resultado}, ${i.motivo ?? null},
          ${i.slug ?? null}, ${i.eventoId ?? null}, ${i.personaId ?? null},
-         ${i.personaNueva ?? null}, ${i.yaInscripto ?? null}, ${i.ipHash ?? null},
+         ${i.personaNueva ?? null}, ${i.yaInscripto ?? null}, ${i.reintentos ?? null},
+         ${i.ipHash ?? null},
          ${i.userAgent?.slice(0, 300) ?? null}, ${i.duracionMs ?? null},
          ${i.payload ? sql.json(i.payload) : null})
     `;

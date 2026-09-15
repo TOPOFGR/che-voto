@@ -86,7 +86,10 @@ en dos lugares (ver [`lib/observabilidad.ts`](lib/observabilidad.ts)):
   copia de seguridad del votante que se perdió.
 
 Resultados posibles: `ok`, `validacion`, `rate_limit`, `honeypot`,
-`link_invalido`, `error`. Un `ok` con `persona_nueva = false` también es un caso
+`link_invalido`, `error`. La columna `reintentos` cuenta cuántas veces hubo que
+reintentar por un corte de conexión (ver `conReintentos` en
+[`lib/db.ts`](lib/db.ts)): si empieza a subir, el compute de Neon se está
+suspendiendo más de lo que el formulario tolera. Un `ok` con `persona_nueva = false` también es un caso
 a mirar: la cédula ya existía en la campaña, se reusó esa persona y los datos del
 formulario se descartaron.
 

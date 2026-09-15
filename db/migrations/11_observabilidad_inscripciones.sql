@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS inscripcion_intentos (
   persona_nueva boolean,
   -- true = ya tenía asistencia a este evento (vio "¡Ya estabas inscripto/a!").
   ya_inscripto  boolean,
+  -- Reintentos que hicieron falta por errores de conexión (ver `conReintentos`
+  -- en lib/db.ts). Si empieza a subir, el compute de Neon se está suspendiendo
+  -- más de lo que el formulario tolera.
+  reintentos    smallint,
   -- sha256 salteado de la IP, igual que en rate_limits: nunca la IP cruda.
   ip_hash       text,
   user_agent    text,
@@ -39,6 +43,9 @@ CREATE TABLE IF NOT EXISTS inscripcion_intentos (
   -- Es la copia de seguridad del votante que se perdió.
   payload       jsonb
 );
+
+-- Idempotente para una base donde la tabla ya existía sin esta columna.
+ALTER TABLE inscripcion_intentos ADD COLUMN IF NOT EXISTS reintentos smallint;
 
 CREATE INDEX IF NOT EXISTS idx_intentos_created ON inscripcion_intentos (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_intentos_resultado ON inscripcion_intentos (resultado, created_at DESC);

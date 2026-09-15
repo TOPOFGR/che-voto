@@ -3,6 +3,7 @@
 import { getEventoPorSlug, inscribirEnEvento } from "@/lib/eventos";
 import { celularValidoPY, normalizarCelular } from "@/lib/celular";
 import { checkRateLimit, hashIp, type RateRule } from "@/lib/rate-limit";
+import { conReintentos } from "@/lib/db";
 import { contextoCliente } from "@/lib/ip-cliente";
 import {
   mensajeError,
@@ -95,7 +96,9 @@ export async function inscribirse(
       };
     }
 
-    const evento = await getEventoPorSlug(slug);
+    // Reintentos ante un corte de conexión: el compute de Neon se suspende tras
+    // unos minutos sin tráfico, y en un evento la gente se inscribe a los saltos.
+    const { valor: evento } = await conReintentos(() => getEventoPorSlug(slug));
     if (!evento) {
       registrar({ resultado: "link_invalido", payload });
       return { error: "Este evento ya no está disponible." };
@@ -147,15 +150,20 @@ export async function inscribirse(
       return invalido("telefono", "Revisá tu teléfono — usá el formato 09xx xxx xxx.");
     }
 
-    const { yaInscripto, personaId, personaNueva } = await inscribirEnEvento(evento, {
-      nombre,
-      numero_cedula: cedula,
-      genero: sexo,
-      edad,
-      ciudad,
-      barrio,
-      telefono: normalizarCelular(telefono),
-    });
+    const {
+      valor: { yaInscripto, personaId, personaNueva },
+      reintentos,
+    } = await conReintentos(() =>
+      inscribirEnEvento(evento, {
+        nombre,
+        numero_cedula: cedula,
+        genero: sexo,
+        edad,
+        ciudad,
+        barrio,
+        telefono: normalizarCelular(telefono),
+      }),
+    );
 
     registrar({
       resultado: "ok",
@@ -163,6 +171,7 @@ export async function inscribirse(
       personaId,
       personaNueva,
       yaInscripto,
+      reintentos,
       // Si la cédula ya estaba cargada se reusó esa persona y estos datos se
       // descartaron: los guardamos para poder detectar la confusión.
       payload: personaNueva ? null : payload,

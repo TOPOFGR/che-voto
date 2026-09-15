@@ -190,7 +190,16 @@ export function InscripcionForm({
         />
       </div>
 
-      {state && "error" in state && <p className="alert-danger">{state.error}</p>}
+      {state && "error" in state && (
+        <div className="alert-danger">
+          <p>{state.error}</p>
+          {/* Código del intento: lo dicta por WhatsApp y con eso encontramos su
+              fila en `inscripcion_intentos`. */}
+          {state.codigo && (
+            <p className="mt-1 text-xs opacity-80">Código: {state.codigo}</p>
+          )}
+        </div>
+      )}
 
       <button
         type="submit"

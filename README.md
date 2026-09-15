@@ -73,9 +73,43 @@ Variables de entorno (`.env.local`):
 - `NEON_AUTH_BASE_URL` — URL de Neon Auth del branch.
 - `NEON_AUTH_COOKIE_SECRET` — secreto de 32+ caracteres (`openssl rand -base64 32`).
 
+## Observabilidad
+
+El formulario público de inscripción a eventos (`/evento/<slug>`) es un endpoint
+sin sesión: quien falla ahí no vuelve a avisarnos. Por eso cada envío deja rastro
+en dos lugares (ver [`lib/observabilidad.ts`](lib/observabilidad.ts)):
+
+- **Una línea JSON en stdout** (`{"evt":"inscripcion",...}`), que captura el
+  runtime del host. Sin datos personales. Sirve para alertar.
+- **Una fila en `inscripcion_intentos`**, consultable con SQL. Guarda además lo
+  que la persona escribió *cuando esos datos no quedaron guardados* — o sea, la
+  copia de seguridad del votante que se perdió.
+
+Resultados posibles: `ok`, `validacion`, `rate_limit`, `honeypot`,
+`link_invalido`, `error`. La columna `reintentos` cuenta cuántas veces hubo que
+reintentar por un corte de conexión (ver `conReintentos` en
+[`lib/db.ts`](lib/db.ts)): si empieza a subir, el compute de Neon se está
+suspendiendo más de lo que el formulario tolera. Un `ok` con `persona_nueva = false` también es un caso
+a mirar: la cédula ya existía en la campaña, se reusó esa persona y los datos del
+formulario se descartaron.
+
+Cuando algo falla de verdad, la persona ve un **código corto** en pantalla y lo
+puede dictar por WhatsApp; con ese código se encuentra su intento exacto. Las
+consultas listas para correr están en
+[`db/consultas-observabilidad.sql`](db/consultas-observabilidad.sql).
+
+Errores que escapan de un render o de una action los recoge `onRequestError` en
+[`instrumentation.ts`](instrumentation.ts); la página pública del evento tiene
+además su propio error boundary con botón de reintentar, así una caída de la DB
+deja una pantalla entendible en vez de romper la página.
+
 ## Próximos pasos sugeridos
 
 - Convertir en PWA instalable (service worker + `next-pwa`); el manifest ya está en `public/`.
 - Gestión de territorios y asignaciones desde la UI (hoy se administran en la base).
 - Invitaciones por rol en lugar de auto-selección de rol en el onboarding.
 - Interacciones (puerta a puerta, llamadas) y GOTV el día de la elección (tablas ya existen).
+- Extender la misma traza al formulario "Quiero apoyar" (`lib/observabilidad.ts`
+  ya contempla el origen `apoyo`).
+- Mostrarle al organizador, en la pantalla del evento, los intentos fallidos para
+  que pueda recuperarlos sin pasar por SQL.

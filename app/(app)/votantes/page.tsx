@@ -86,6 +86,11 @@ export default async function VotantesPage({
                         Se sumó solo/a
                       </span>
                     )}
+                    {v.fuente_dato === "evento" && (
+                      <span className="chip bg-brand-100 text-brand-700 ml-2 align-middle">
+                        Se inscribió a un evento
+                      </span>
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted mt-0.5">
                     {v.numero_cedula && <span>CI {v.numero_cedula}</span>}

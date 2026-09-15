@@ -68,8 +68,10 @@ export const config = {
   // e.g. /icons/whatsapp.png — the image optimizer fetches these internally with
   // no auth cookie, so a redirect here 400s the optimizer), and the
   // public/unauthenticated areas (auth pages, invitation acceptance, the public
-  // "Quiero apoyar" form), which must not be redirected to sign-in.
+  // "Quiero apoyar" form, public event sign-up at /evento/<slug>), which must not
+  // be redirected to sign-in. `evento/` keeps its slash so the protected
+  // /eventos section still gets the cookie refresh.
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|auth|invitacion|apoyar|.*\\..*).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|auth|invitacion|apoyar|evento/|.*\\..*).*)",
   ],
 };

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/avatar";
 import { actualizarPerfil } from "./actions";
+import { redimensionarImagen } from "@/lib/redimensionar-imagen";
 import type { Usuario } from "@/lib/types";
 
 const MAX_LADO = 400; // px — lado máximo de la foto que se sube.
@@ -39,7 +40,7 @@ export function PerfilForm({ usuario }: { usuario: Usuario }) {
 
     let archivo = original;
     try {
-      archivo = await redimensionar(original);
+      archivo = await redimensionarImagen(original, MAX_LADO);
     } catch {
       // Si el redimensionado falla, subimos el original (el server valida
       // tamaño y tipo de todas formas).
@@ -152,43 +153,4 @@ export function PerfilForm({ usuario }: { usuario: Usuario }) {
       </button>
     </form>
   );
-}
-
-/**
- * Redimensiona una imagen a un máximo de {@link MAX_LADO}px de lado usando un
- * canvas y la exporta como JPEG. Evita subir fotos enormes desde el celular sin
- * necesitar una librería de imágenes en el server.
- */
-function redimensionar(file: File): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const escala = Math.min(1, MAX_LADO / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * escala));
-      const h = Math.max(1, Math.round(img.height * escala));
-
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return reject(new Error("no canvas ctx"));
-      ctx.drawImage(img, 0, 0, w, h);
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return reject(new Error("toBlob null"));
-          resolve(new File([blob], "foto.jpg", { type: "image/jpeg" }));
-        },
-        "image/jpeg",
-        0.85,
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("no se pudo leer la imagen"));
-    };
-    img.src = url;
-  });
 }

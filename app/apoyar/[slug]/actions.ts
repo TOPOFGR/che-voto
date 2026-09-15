@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { ipDelCliente } from "@/lib/ip-cliente";
 import { getDirigentePorSlug, crearApoyoPublico } from "@/lib/queries";
 import { celularValidoPY, normalizarCelular } from "@/lib/celular";
 import { checkRateLimit, hashIp, type RateRule } from "@/lib/rate-limit";
@@ -18,14 +18,6 @@ const REGLAS_APOYO: RateRule[] = [
   { limit: 8, windowSeconds: 60 }, // 8 por minuto
   { limit: 40, windowSeconds: 60 * 30 }, // 40 por media hora
 ];
-
-/** IP del cliente detrás del proxy/host (primer hop de x-forwarded-for). */
-async function ipDelCliente(): Promise<string> {
-  const h = await headers();
-  const xff = h.get("x-forwarded-for");
-  const primera = xff?.split(",")[0]?.trim();
-  return primera || h.get("x-real-ip") || "desconocida";
-}
 
 /**
  * Alta pública "Quiero apoyar" — sin sesión. El referente/campaña salen del

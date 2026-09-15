@@ -86,12 +86,13 @@ export interface VotanteFiltros {
   habilitado?: "si" | "no";
 }
 
-interface Scope {
+export interface Scope {
   visionTotal: boolean;
   referenteIds: string[];
 }
 
-async function getScope(usuario: Usuario): Promise<Scope> {
+/** Alcance de visibilidad del usuario sobre los votantes (ver scopeCondition). */
+export async function getScope(usuario: Usuario): Promise<Scope> {
   if (ROLES_VISION_TOTAL.includes(usuario.rol)) {
     // administrador → every voter of the campaign.
     return { visionTotal: true, referenteIds: [] };
@@ -103,8 +104,10 @@ async function getScope(usuario: Usuario): Promise<Scope> {
  * Build the WHERE fragment that enforces hierarchy-based row visibility.
  * Synchronous on purpose: fragments must never be awaited (that would run them
  * as standalone queries). Await getScope() first, then call this.
+ *
+ * Asume `personas p` y (fuera de visión total) `vinculos_campania v` en el FROM.
  */
-function scopeCondition(usuario: Usuario, scope: Scope) {
+export function scopeCondition(usuario: Usuario, scope: Scope) {
   if (scope.visionTotal) {
     return sql`p.campaign_id = ${usuario.campaign_id}`;
   }

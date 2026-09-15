@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { PinMap, type LatLng } from "../votantes/nuevo/pin-map";
 import { importarUbicacionGoogleMaps } from "../votantes/google-maps-action";
@@ -367,7 +368,14 @@ export function EventoForm({
 
       {state && "error" in state && <p className="alert-danger">{state.error}</p>}
       {state && "ok" in state && (
-        <p className="text-sm text-brand-700 bg-brand-50 rounded-lg px-3 py-2">Cambios guardados.</p>
+        <p className="text-sm text-brand-700 bg-brand-50 rounded-lg px-3 py-2">
+          Cambios guardados.{" "}
+          {evento && (
+            <Link href={`/eventos/${evento.id}`} className="font-semibold underline">
+              Volver al evento
+            </Link>
+          )}
+        </p>
       )}
 
       <button type="submit" disabled={isPending} className="btn-primary w-full">

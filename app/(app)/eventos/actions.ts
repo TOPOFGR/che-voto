@@ -98,7 +98,8 @@ async function leerEvento(
  * el administrador; la edición además exige ser el creador (o administrador),
  * lo valida `actualizarEvento`. El administrador elige a nombre de quién es el
  * evento (`creador_id`, revalidado en el server); el resto crea a su nombre. Al
- * crear redirige a la pantalla del evento para compartir el link.
+ * crear redirige a la pantalla del evento, donde se comparte el link y se ven
+ * los inscriptos.
  */
 export async function guardarEvento(
   _prev: EventoState,
@@ -127,6 +128,8 @@ export async function guardarEvento(
     const ok = await actualizarEvento(usuario, id, datos);
     if (!ok) return { error: "No encontramos el evento o no podés editarlo." };
     revalidatePath(`/eventos/${id}`);
+    revalidatePath(`/eventos/${id}/editar`);
+    revalidatePath(`/eventos/${id}/participantes`);
     revalidatePath("/eventos");
     return { ok: true };
   }

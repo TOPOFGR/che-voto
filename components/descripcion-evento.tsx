@@ -3,8 +3,12 @@
 import { useState } from "react";
 import { recortarDescripcion } from "@/lib/eventos-config";
 
-/** Descripción colapsable: muestra un recorte y alterna con "Saber más" / "Saber menos". */
-export function Descripcion({ texto }: { texto: string }) {
+/**
+ * Descripción de un evento, colapsable: muestra un recorte y alterna con
+ * "Saber más" / "Saber menos". La usan la página pública del evento y la
+ * pantalla interna del evento.
+ */
+export function DescripcionEvento({ texto }: { texto: string }) {
   const [abierta, setAbierta] = useState(false);
   const recorte = recortarDescripcion(texto);
 

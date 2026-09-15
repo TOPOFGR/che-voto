@@ -22,6 +22,10 @@ export function redimensionarImagen(
       canvas.height = h;
       const ctx = canvas.getContext("2d");
       if (!ctx) return reject(new Error("no canvas ctx"));
+      // JPEG no tiene transparencia: sin fondo, un PNG transparente (p.ej. un
+      // logo) queda con fondo negro. Pintamos blanco antes de dibujar.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, 0, 0, w, h);
 
       canvas.toBlob(

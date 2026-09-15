@@ -105,7 +105,8 @@ export default async function EventoPublicoPage({
             <img
               src={`/api/evento/${slug}/foto?v=${evento.foto_v}`}
               alt={evento.nombre}
-              className="w-full max-h-[420px] object-cover bg-slate-100"
+              // contain: la foto puede ser un flyer o un logo; no recortar el texto.
+              className="w-full max-h-[420px] object-contain bg-slate-100"
             />
           )}
           <div className="p-5 flex flex-col gap-3">

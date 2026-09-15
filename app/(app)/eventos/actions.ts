@@ -129,6 +129,7 @@ export async function guardarEvento(
     if (!ok) return { error: "No encontramos el evento o no podés editarlo." };
     revalidatePath(`/eventos/${id}`);
     revalidatePath(`/eventos/${id}/editar`);
+    revalidatePath(`/eventos/${id}/participantes`);
     revalidatePath("/eventos");
     return { ok: true };
   }

@@ -1,26 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUsuario } from "@/lib/session";
-import { getEvento, getInscriptos, INSCRIPTOS_MAX } from "@/lib/eventos";
+import { getEvento } from "@/lib/eventos";
 import { formatearFechaEvento } from "@/lib/eventos-config";
 import { PageHeader } from "@/components/ui";
-import { CalendarioIcon } from "@/components/icons";
+import { CalendarioIcon, VotantesIcon } from "@/components/icons";
 import { DescripcionEvento } from "@/components/descripcion-evento";
 import { CompartirEvento } from "../compartir-evento";
-import { InscriptosLista } from "./inscriptos-lista";
 
 export const dynamic = "force-dynamic";
 
-/** "12 mujeres · 8 varones" — resumen rápido de quiénes se anotaron. */
-function resumenGenero(generos: (string | null)[]): string | null {
-  const mujeres = generos.filter((g) => g === "F").length;
-  const varones = generos.filter((g) => g === "M").length;
-  const partes: string[] = [];
-  if (mujeres) partes.push(`${mujeres} ${mujeres === 1 ? "mujer" : "mujeres"}`);
-  if (varones) partes.push(`${varones} ${varones === 1 ? "varón" : "varones"}`);
-  return partes.length ? partes.join(" · ") : null;
-}
-
+/**
+ * Pantalla del evento: sólo lo justo para reconocerlo, el link para compartir y
+ * los dos accesos (participantes y edición). El formulario y la lista viven en
+ * sus propias pantallas para no llenar ésta de información.
+ */
 export default async function EventoPage({
   params,
   searchParams,
@@ -34,18 +28,14 @@ export default async function EventoPage({
 
   const evento = await getEvento(usuario, id);
   if (!evento) notFound();
-  const inscriptos = await getInscriptos(usuario, evento.id);
 
   const fecha = evento.inicia_local ? formatearFechaEvento(evento.inicia_local) : null;
-  const resumen = resumenGenero(inscriptos.map((i) => i.genero));
-  const truncado = inscriptos.length >= INSCRIPTOS_MAX;
-  const total = `${evento.inscriptos} ${evento.inscriptos === 1 ? "inscripto" : "inscriptos"}`;
 
   return (
     <div className="max-w-lg mx-auto">
       <PageHeader
         title={evento.nombre}
-        subtitle={total}
+        subtitle={fecha ?? undefined}
         action={
           <Link href="/eventos" className="btn-ghost">
             Volver
@@ -59,7 +49,7 @@ export default async function EventoPage({
         </p>
       )}
 
-      {/* --- Datos del evento (compacto: lo importante acá son los inscriptos) --- */}
+      {/* --- Datos del evento --- */}
       <section className="card p-4 mb-4 flex flex-col gap-3">
         <div className="flex items-start gap-3">
           {evento.foto_v ? (
@@ -96,39 +86,20 @@ export default async function EventoPage({
         </div>
 
         {evento.descripcion && <DescripcionEvento texto={evento.descripcion} />}
+      </section>
 
-        <Link href={`/eventos/${evento.id}/editar`} className="btn-ghost self-start">
+      {/* --- Accesos: la lista y el formulario, cada uno en su pantalla --- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4">
+        <Link href={`/eventos/${evento.id}/participantes`} className="btn-primary">
+          <VotantesIcon className="w-4 h-4" />
+          Participantes ({evento.inscriptos})
+        </Link>
+        <Link href={`/eventos/${evento.id}/editar`} className="btn-ghost">
           Editar evento
         </Link>
-      </section>
+      </div>
 
       <CompartirEvento slug={evento.slug} nombre={evento.nombre} />
-
-      {/* --- Inscriptos --- */}
-      <section className="card p-4">
-        <div className="mb-3">
-          <h2 className="font-semibold text-slate-900">
-            Inscriptos <span className="text-muted font-normal">({evento.inscriptos})</span>
-          </h2>
-          {resumen && <p className="text-xs text-muted mt-0.5">{resumen}</p>}
-        </div>
-
-        {inscriptos.length === 0 ? (
-          <p className="text-sm text-muted">
-            Todavía no se inscribió nadie. Compartí el link de inscripción y acá vas a ver a
-            cada persona que se anote.
-          </p>
-        ) : (
-          <>
-            <InscriptosLista inscriptos={inscriptos} />
-            {truncado && (
-              <p className="text-xs text-muted mt-3">
-                Mostrando los últimos {INSCRIPTOS_MAX} inscriptos.
-              </p>
-            )}
-          </>
-        )}
-      </section>
     </div>
   );
 }

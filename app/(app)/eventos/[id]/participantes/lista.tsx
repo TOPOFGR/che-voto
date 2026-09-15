@@ -16,11 +16,11 @@ function normalizar(texto: string): string {
 }
 
 /**
- * Listado de los inscriptos a un evento, con buscador local: la pantalla ya
+ * Listado de los participantes de un evento, con buscador local: la pantalla ya
  * trae todas las filas, así que filtrar en el cliente evita ida y vuelta al
  * servidor mientras la persona tipea.
  */
-export function InscriptosLista({ inscriptos }: { inscriptos: Inscripto[] }) {
+export function ListaParticipantes({ inscriptos }: { inscriptos: Inscripto[] }) {
   const [q, setQ] = useState("");
 
   const indexados = useMemo(
@@ -50,7 +50,7 @@ export function InscriptosLista({ inscriptos }: { inscriptos: Inscripto[] }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por nombre, cédula, teléfono o barrio…"
-          aria-label="Buscar inscriptos"
+          aria-label="Buscar participantes"
           className="field"
         />
       )}
@@ -63,7 +63,7 @@ export function InscriptosLista({ inscriptos }: { inscriptos: Inscripto[] }) {
       )}
 
       {filtrados.length === 0 ? (
-        <p className="text-sm text-muted">No hay inscriptos que coincidan con la búsqueda.</p>
+        <p className="text-sm text-muted">Nadie coincide con la búsqueda.</p>
       ) : (
         <ul className="divide-y divide-[var(--color-line)]">
           {filtrados.map((i) => {

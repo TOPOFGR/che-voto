@@ -2,10 +2,17 @@ import Link from "next/link";
 import { requireUsuario } from "@/lib/session";
 import { getDashboardStats } from "@/lib/queries";
 import { StatCard, PageHeader } from "@/components/ui";
-import { AgregarVotanteIcon, MapaIcon, VotantesIcon, ArrowRightIcon } from "@/components/icons";
+import {
+  AgregarVotanteIcon,
+  MapaIcon,
+  VotantesIcon,
+  ArrowRightIcon,
+  CalendarioIcon,
+} from "@/components/icons";
 import {
   INTENCIONES_PARTIDO,
   ROLES,
+  ROLES_QUE_CREAN_EVENTOS,
   ROLES_VISION_TOTAL,
   type IntencionPartido,
 } from "@/lib/types";
@@ -81,6 +88,17 @@ export default async function DashboardPage() {
             <p className="text-xs text-muted">Concentración de votantes</p>
           </div>
         </Link>
+        {ROLES_QUE_CREAN_EVENTOS.includes(usuario.rol) && (
+          <Link href="/eventos" className="card p-4 flex items-center gap-3 hover:border-brand-300 transition-colors">
+            <span className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center">
+              <CalendarioIcon className="w-5 h-5" />
+            </span>
+            <div>
+              <p className="font-semibold text-slate-800 text-sm">Eventos</p>
+              <p className="text-xs text-muted">Creá eventos y sumá inscriptos</p>
+            </div>
+          </Link>
+        )}
       </div>
 
       {/* Intención por partido — barras en gris neutro: los partidos no se

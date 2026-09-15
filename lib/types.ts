@@ -142,6 +142,9 @@ export const ROLES: Record<
 // Roles that see every voter of the campaign (no hierarchy scoping).
 export const ROLES_VISION_TOTAL: RolUsuario[] = ["administrador"];
 
+// Roles que crean eventos con link público de inscripción (/evento/<slug>).
+export const ROLES_QUE_CREAN_EVENTOS: RolUsuario[] = ["administrador", "intendente", "concejal"];
+
 /**
  * Explicit invitation hierarchy. Unlike a strict `nivel` comparison, a dirigente
  * may invite other dirigentes (same level), so we spell the rules out.

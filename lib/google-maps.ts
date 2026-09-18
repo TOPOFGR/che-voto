@@ -8,15 +8,16 @@
 //   3. @<lat>,<lng>,<zoom>    → centro del viewport (fallback)
 //   4. /place/<lat>,<lng>     → lugar sin nombre
 //
-// Los links cortos (maps.app.goo.gl, goo.gl/maps, g.co) no traen la coordenada:
-// hay que seguir el redirect desde el servidor y después parsear la URL final.
+// Los links cortos (maps.app.goo.gl, goo.gl/maps, g.co, share.google) no traen la
+// coordenada: hay que seguir el redirect desde el servidor y después parsear la
+// URL final (o, para share.google, la búsqueda de mapas; ver urlBusquedaMapa).
 
 export interface LatLng {
   lat: number;
   lng: number;
 }
 
-const HOSTS_CORTOS = ["maps.app.goo.gl", "goo.gl", "g.co"];
+const HOSTS_CORTOS = ["maps.app.goo.gl", "goo.gl", "g.co", "share.google"];
 
 function esCoordenadaValida(lat: number, lng: number): boolean {
   return (
@@ -66,7 +67,35 @@ const PATRONES: RegExp[] = [
   /@(-?\d+\.\d+),(-?\d+\.\d+)/,
   // /place/<lat>,<lng> o /dir/<lat>,<lng>
   /\/(?:place|dir)\/(-?\d+\.\d+),\+?(-?\d+\.\d+)/,
+  // Respuesta de la búsqueda de mapas (tbm=map): [null,null,<lat>,<lng>]
+  /\[null,null,(-?\d+\.\d+),(-?\d+\.\d+)\]/,
 ];
+
+/**
+ * Los links de "Compartir" de la app de Google (share.google) no llevan a Maps
+ * sino a una búsqueda de Google (`/search?q=<lugar>&kgmid=<id>`) sin coordenadas.
+ * Con esos mismos parámetros armamos la búsqueda de mapas (tbm=map), cuya
+ * respuesta sí trae la coordenada del lugar. Devuelve null si la URL no es una
+ * búsqueda de Google.
+ */
+export function urlBusquedaMapa(url: string): string | null {
+  try {
+    const u = new URL(url.trim());
+    if (!/(^|\.)google\.[a-z.]+$/.test(u.hostname) || u.pathname !== "/search") {
+      return null;
+    }
+    const q = u.searchParams.get("q");
+    if (!q) return null;
+    const destino = new URL("https://www.google.com/search");
+    destino.searchParams.set("tbm", "map");
+    destino.searchParams.set("q", q);
+    const kgmid = u.searchParams.get("kgmid");
+    if (kgmid) destino.searchParams.set("kgmid", kgmid);
+    return destino.toString();
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Intenta extraer una coordenada de una URL (o de cualquier texto que la

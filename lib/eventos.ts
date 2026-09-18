@@ -288,6 +288,32 @@ export async function getInscriptos(
   `;
 }
 
+export interface InscriptoPlanilla {
+  nombre: string;
+  numero_cedula: string | null;
+  telefono: string | null;
+  ciudad: string | null;
+}
+
+// Tope de filas del PDF de asistencia (resguardo; un evento real queda muy por debajo).
+export const PLANILLA_MAX = 5000;
+
+/**
+ * Inscriptos para la planilla de asistencia en PDF, por orden alfabético para
+ * encontrar rápido a cada persona en la puerta. Llamar sólo después de validar
+ * acceso con getEvento.
+ */
+export async function getInscriptosPlanilla(eventoId: string): Promise<InscriptoPlanilla[]> {
+  return sql<InscriptoPlanilla[]>`
+    SELECT p.nombre, p.numero_cedula, p.telefono, p.ciudad
+    FROM asistencias_evento a
+    JOIN personas p ON p.id = a.persona_id
+    WHERE a.evento_id = ${eventoId}
+    ORDER BY lower(p.nombre), a.created_at
+    LIMIT ${PLANILLA_MAX}
+  `;
+}
+
 export interface DatosInscripcion {
   nombre: string;
   // Sólo dígitos.

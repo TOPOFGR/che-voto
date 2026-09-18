@@ -57,14 +57,24 @@ export default async function ParticipantesPage({
           </Link>
         </div>
       ) : (
-        <div className="card p-4">
-          <ListaParticipantes inscriptos={inscriptos} />
-          {truncado && (
-            <p className="text-xs text-muted mt-3">
-              Mostrando los últimos {INSCRIPTOS_MAX} participantes.
-            </p>
-          )}
-        </div>
+        <>
+          {/* Planilla para la puerta: todos los inscriptos con casilla "Presente". */}
+          <a
+            href={`/api/eventos/${evento.id}/asistencia`}
+            download
+            className="btn-ghost w-full mb-3"
+          >
+            Descargar planilla de asistencia (PDF)
+          </a>
+          <div className="card p-4">
+            <ListaParticipantes inscriptos={inscriptos} />
+            {truncado && (
+              <p className="text-xs text-muted mt-3">
+                Mostrando los últimos {INSCRIPTOS_MAX} participantes.
+              </p>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

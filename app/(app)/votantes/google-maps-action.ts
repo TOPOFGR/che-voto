@@ -5,6 +5,7 @@ import {
   extraerCoordenadas,
   esLinkCortoGoogleMaps,
   esUrlGoogleMaps,
+  urlBusquedaMapa,
   type LatLng,
 } from "@/lib/google-maps";
 
@@ -12,23 +13,21 @@ export type ImportarUbicacionResponse =
   | { ok: true; coords: LatLng }
   | { ok: false; error: string };
 
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36";
+// Ojo: con un User-Agent de navegador de escritorio, maps.app.goo.gl responde
+// 200 con una página intermedia (sin redirect ni coordenadas). Con un UA que no
+// es de navegador devuelve el 302 a la URL larga de Maps.
+const USER_AGENT = "CheVoto/1.0";
 
 /**
- * Sigue el redirect de un link corto de Google (maps.app.goo.gl, goo.gl, g.co)
- * y devuelve la URL final más el cuerpo de la respuesta, donde suelen quedar las
- * coordenadas. Sólo se resuelven hosts de Google (evita usar el server como
- * proxy de URLs arbitrarias).
+ * Pide una URL de Google siguiendo redirects y devuelve la URL final más el
+ * cuerpo de la respuesta, donde suelen quedar las coordenadas. Sólo se llama con
+ * hosts de Google (evita usar el server como proxy de URLs arbitrarias).
  */
-async function resolverLinkCorto(url: string): Promise<string> {
+async function pedirGoogle(url: string): Promise<{ url: string; texto: string }> {
   const res = await fetch(url, {
     method: "GET",
     redirect: "follow",
-    headers: {
-      "user-agent": USER_AGENT,
-      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
+    headers: { "user-agent": USER_AGENT },
     cache: "no-store",
     signal: AbortSignal.timeout(10_000),
   });
@@ -40,7 +39,7 @@ async function resolverLinkCorto(url: string): Promise<string> {
   } catch {
     // Sin cuerpo: nos quedamos con la URL final.
   }
-  return `${res.url}\n${cuerpo}`;
+  return { url: res.url, texto: `${res.url}\n${cuerpo}` };
 }
 
 /**
@@ -68,9 +67,18 @@ export async function importarUbicacionGoogleMaps(
   // 2. Link corto: seguimos el redirect y parseamos la URL/HTML resultante.
   if (esLinkCortoGoogleMaps(url)) {
     try {
-      const resuelto = await resolverLinkCorto(url);
-      const coords = extraerCoordenadas(resuelto);
+      const resuelto = await pedirGoogle(url);
+      const coords = extraerCoordenadas(resuelto.texto);
       if (coords) return { ok: true, coords };
+
+      // share.google termina en una búsqueda de Google sin coordenadas:
+      // repetimos la búsqueda en modo mapa para obtener el punto del lugar.
+      const busqueda = urlBusquedaMapa(resuelto.url);
+      if (busqueda) {
+        const mapa = await pedirGoogle(busqueda);
+        const coordsMapa = extraerCoordenadas(mapa.texto);
+        if (coordsMapa) return { ok: true, coords: coordsMapa };
+      }
     } catch {
       return {
         ok: false,

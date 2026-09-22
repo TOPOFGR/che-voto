@@ -72,6 +72,27 @@ Variables de entorno (`.env.local`):
 - `DATABASE_URL` — connection string *pooled* de Neon.
 - `NEON_AUTH_BASE_URL` — URL de Neon Auth del branch.
 - `NEON_AUTH_COOKIE_SECRET` — secreto de 32+ caracteres (`openssl rand -base64 32`).
+- `LANDING_JAZMIN_USER_ID` / `LANDING_JAZMIN_SLUG` — (opcional) usuario de Jazmín
+  Galeano al que se atribuyen los votantes de su landing. Si no están, se busca
+  por nombre en `usuarios`.
+- `LANDING_JAZMIN_API_KEY` — (opcional) si está, el POST exige `Authorization:
+  Bearer …` o `X-Api-Key`.
+- `LANDING_JAZMIN_ORIGINS` — orígenes CORS de la landing, separados por coma
+  (o `*` para cualquiera). Sin esto el browser de otro dominio no puede llamar.
+
+## Landing de Jazmín Galeano
+
+`POST /api/landing/jazmin-galeano/votantes` carga votantes desde su landing
+(sin sesión). Crea a la persona si no existe; si ya está (misma cédula, mismo
+teléfono o mismo nombre en la campaña) no hace nada. Hoy el campo requerido es
+`nombre` (también acepta `nombre_completo` / `first_name`+`last_name`); cédula,
+teléfono y dirección son opcionales hasta que cierre el spec.
+
+Cuerpo: un objeto, un array, o `{ "votantes": [ ... ] }`. Respuesta:
+
+```json
+{ "ok": true, "created": 1, "skipped": 0, "invalid": 0, "results": [{ "status": "created", "personaId": "…" }] }
+```
 
 ## Observabilidad
 

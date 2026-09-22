@@ -37,7 +37,7 @@ export type ResultadoIntento =
 export type PayloadFormulario = Record<string, string | number | boolean | null>;
 
 export interface Intento {
-  origen: "evento" | "apoyo";
+  origen: "evento" | "apoyo" | "landing_jazmin";
   resultado: ResultadoIntento;
   /** Código corto que también ve la persona cuando falla. */
   codigo: string;

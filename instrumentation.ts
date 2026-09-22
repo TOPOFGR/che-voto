@@ -40,6 +40,16 @@ export const onRequestError: Instrumentation.onRequestError = async (
     }),
   );
 
+  if (context.routePath.includes("jazmin-galeano")) {
+    await registrarIntentoEsperando({
+      origen: "landing_jazmin",
+      resultado: "error",
+      codigo: digest ?? nuevoCodigo(),
+      motivo: `${context.routeType}: ${motivo}`,
+      slug: "jazmin-galeano",
+    });
+  }
+
   if (context.routePath.startsWith("/evento/[slug]")) {
     await registrarIntentoEsperando({
       origen: "evento",

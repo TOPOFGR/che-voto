@@ -29,6 +29,14 @@ export default async function VotanteDetallePage({
         }
       />
 
+      {votante.fuente_dato === "landing_jazmin" && (
+        <div className="card p-4 mb-4">
+          <p className="text-sm font-medium text-slate-700">
+            Se sumó por la landing de Jazmín Galeano
+          </p>
+        </div>
+      )}
+
       {votante.fuente_dato === "formulario_publico" && (
         <div className="card p-4 mb-4">
           <p className="text-sm font-medium text-slate-700">

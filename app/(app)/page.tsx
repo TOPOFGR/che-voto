@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUsuario } from "@/lib/session";
-import { getDashboardStats } from "@/lib/queries";
+import { getCargadoresWeb, getDashboardStats } from "@/lib/queries";
 import { StatCard, PageHeader } from "@/components/ui";
 import {
   AgregarVotanteIcon,
@@ -16,12 +16,16 @@ import {
   ROLES_VISION_TOTAL,
   type IntencionPartido,
 } from "@/lib/types";
+import { CargadorWeb } from "./cargador-web";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const usuario = await requireUsuario();
-  const stats = await getDashboardStats(usuario);
+  const [stats, cargadores] = await Promise.all([
+    getDashboardStats(usuario),
+    getCargadoresWeb(usuario),
+  ]);
 
   const alcanceTotal = ROLES_VISION_TOTAL.includes(usuario.rol);
   const intencionMap = new Map(stats.por_intencion_partido.map((i) => [i.intencion_partido, i.n]));
@@ -100,6 +104,8 @@ export default async function DashboardPage() {
           </Link>
         )}
       </div>
+
+      <CargadorWeb opciones={cargadores} />
 
       {/* Intención por partido — barras en gris neutro: los partidos no se
           codifican por color (regla de neutralidad del design system). */}

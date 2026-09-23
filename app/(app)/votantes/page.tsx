@@ -86,6 +86,11 @@ export default async function VotantesPage({
                         Se sumó solo/a
                       </span>
                     )}
+                    {v.fuente_dato === "web" && (
+                      <span className="chip bg-brand-100 text-brand-700 ml-2 align-middle">
+                        Se sumó por la web
+                      </span>
+                    )}
                     {v.fuente_dato === "evento" && (
                       <span className="chip bg-brand-100 text-brand-700 ml-2 align-middle">
                         Se inscribió a un evento

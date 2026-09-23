@@ -512,6 +512,92 @@ export async function crearApoyoPublico(
   });
 }
 
+export interface DatosVotanteWeb {
+  nombre: string;
+  telefono: string;
+  numero_cedula: string | null;
+  barrio: string | null;
+  ciudad: string | null;
+}
+
+/**
+ * Alta de un votante desde el "cargador web": el endpoint público
+ * POST /api/votantes/web/<slug> que el dirigente embebe en su propia web. Igual
+ * que el formulario "Quiero apoyar", la campaña y el referente salen del
+ * `dirigente` resuelto por el slug (nunca del body). Se marca
+ * `fuente_dato = 'web'`. Si la cédula ya está cargada en la campaña no se crea
+ * un duplicado ni se tocan sus datos (el endpoint es abierto): devuelve
+ * `personaNueva: false` y no escribe nada.
+ */
+export async function crearVotanteWeb(
+  dirigente: DirigentePublico,
+  data: DatosVotanteWeb,
+): Promise<{ personaNueva: boolean }> {
+  return sql.begin(async (tx) => {
+    if (data.numero_cedula) {
+      const [existente] = await tx<{ id: string }[]>`
+        SELECT id FROM personas
+        WHERE campaign_id = ${dirigente.campaign_id}
+          AND regexp_replace(coalesce(numero_cedula, ''), '[^0-9]', '', 'g') = ${data.numero_cedula}
+        LIMIT 1
+      `;
+      if (existente) return { personaNueva: false };
+    }
+
+    const direccion = [data.barrio, data.ciudad].filter(Boolean).join(", ") || null;
+    const [persona] = await tx<{ id: string }[]>`
+      INSERT INTO personas
+        (campaign_id, nombre, telefono, numero_cedula, barrio, ciudad, direccion, fuente_dato)
+      VALUES
+        (${dirigente.campaign_id}, ${data.nombre}, ${data.telefono},
+         ${data.numero_cedula}, ${data.barrio}, ${data.ciudad}, ${direccion}, 'web')
+      RETURNING id
+    `;
+
+    await tx`
+      INSERT INTO vinculos_campania
+        (campaign_id, persona_id, referente_id, intencion_partido, estado_voto)
+      VALUES
+        (${dirigente.campaign_id}, ${persona.id}, ${dirigente.id}, 'desconozco', 'pendiente')
+    `;
+
+    return { personaNueva: true };
+  });
+}
+
+export interface CargadorWebOpcion {
+  id: string;
+  nombre: string;
+  rol: Usuario["rol"];
+  slug: string;
+}
+
+/**
+ * Para quién puede generarse el cargador web. El administrador elige entre todos
+ * los usuarios activos de su campaña; el resto sólo tiene el propio. Garantiza
+ * que cada opción tenga slug (lo genera si falta, igual que el link de apoyo).
+ */
+export async function getCargadoresWeb(usuario: Usuario): Promise<CargadorWebOpcion[]> {
+  if (!ROLES_VISION_TOTAL.includes(usuario.rol)) {
+    const slug = await getOrCreateSlugForUsuario(usuario);
+    return [{ id: usuario.id, nombre: usuario.nombre, rol: usuario.rol, slug }];
+  }
+
+  const rows = await sql<Usuario[]>`
+    SELECT * FROM usuarios
+    WHERE campaign_id = ${usuario.campaign_id} AND activo = true
+    ORDER BY (id = ${usuario.id}) DESC, nombre
+  `;
+  return Promise.all(
+    rows.map(async (u) => ({
+      id: u.id,
+      nombre: u.apoyo_nombre?.trim() || u.nombre,
+      rol: u.rol,
+      slug: await getOrCreateSlugForUsuario(u),
+    })),
+  );
+}
+
 export interface VotanteDetalle {
   id: string;
   nombre: string;

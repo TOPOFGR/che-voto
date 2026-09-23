@@ -48,6 +48,14 @@ export default async function VotanteDetallePage({
         </div>
       )}
 
+      {votante.fuente_dato === "web" && (
+        <div className="card p-4 mb-4">
+          <p className="text-sm font-medium text-slate-700">
+            Se sumó por la web, con el cargador de votantes
+          </p>
+        </div>
+      )}
+
       <EditarVotanteForm votante={votante} />
     </div>
   );

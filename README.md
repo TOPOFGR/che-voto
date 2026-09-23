@@ -40,6 +40,10 @@ con un CTE recursivo sobre `territorios`).
 ## Funcionalidades
 
 - **Inicio** (`/`) — métricas, embudo por etapa e intención, accesos rápidos.
+- **Cargador de votantes para tu web** (en el inicio) — un curl listo para copiar y pasarle a tu LLM
+  para que agregue un formulario a tu web. Pega a `POST /api/votantes/web/<slug>` (público, CORS abierto,
+  rate limit por IP: 5/min y 30/hora) y crea el votante con `fuente_dato = 'web'`. El administrador elige
+  para qué usuario es el cargador.
 - **Votantes** (`/votantes`) — listado según rol, con búsqueda y filtros por etapa/intención/territorio.
 - **Cargar votante** (`/votantes/nuevo`) — alta manual, con captura de ubicación GPS del dispositivo.
 - **Mapa** (`/mapa`) — mapa de calor ponderado por etapa e intención de voto.

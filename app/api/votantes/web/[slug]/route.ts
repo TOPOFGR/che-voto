@@ -21,12 +21,13 @@ export const dynamic = "force-dynamic";
  * abuso a nivel aplicación antes de tocar las tablas de votantes.
  */
 
-// Más estrictas que "Quiero apoyar": acá no hay una pantalla nuestra delante y el
-// endpoint es trivial de automatizar. Siguen holgadas para el NAT compartido de
-// las operadoras de PY (muchos votantes reales detrás de una misma IP).
+// Más holgadas que "Quiero apoyar": una web que registra desde su servidor (la
+// consulta del padrón de Jazgale) manda a todos sus votantes desde la misma IP
+// de Vercel. También cubren el NAT compartido de las operadoras de PY (muchos
+// votantes reales detrás de una misma IP).
 const REGLAS_WEB: RateRule[] = [
-  { limit: 5, windowSeconds: 60 }, // 5 por minuto
-  { limit: 30, windowSeconds: 60 * 60 }, // 30 por hora
+  { limit: 20, windowSeconds: 60 }, // 20 por minuto
+  { limit: 120, windowSeconds: 60 * 60 }, // 120 por hora
 ];
 
 const MAX_BODY_BYTES = 4 * 1024;

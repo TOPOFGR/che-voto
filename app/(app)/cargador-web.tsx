@@ -128,7 +128,7 @@ Requisitos:
           <p className="text-xs text-muted">
             Obligatorios: <b>nombre</b> y al menos uno entre <b>telefono</b> (09xx xxx xxx) y{" "}
             <b>cedula</b>. Opcionales: barrio y ciudad. Por seguridad, cada conexión puede cargar
-            hasta 5 votantes por minuto y 30 por hora.
+            hasta 20 votantes por minuto y 120 por hora.
           </p>
         </div>
       )}

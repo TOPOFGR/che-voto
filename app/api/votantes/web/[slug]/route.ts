@@ -21,12 +21,13 @@ export const dynamic = "force-dynamic";
  * abuso a nivel aplicación antes de tocar las tablas de votantes.
  */
 
-// Más estrictas que "Quiero apoyar": acá no hay una pantalla nuestra delante y el
-// endpoint es trivial de automatizar. Siguen holgadas para el NAT compartido de
-// las operadoras de PY (muchos votantes reales detrás de una misma IP).
+// Más holgadas que "Quiero apoyar": una web que registra desde su servidor (la
+// consulta del padrón de Jazgale) manda a todos sus votantes desde la misma IP
+// de Vercel. También cubren el NAT compartido de las operadoras de PY (muchos
+// votantes reales detrás de una misma IP).
 const REGLAS_WEB: RateRule[] = [
-  { limit: 5, windowSeconds: 60 }, // 5 por minuto
-  { limit: 30, windowSeconds: 60 * 60 }, // 30 por hora
+  { limit: 20, windowSeconds: 60 }, // 20 por minuto
+  { limit: 120, windowSeconds: 60 * 60 }, // 120 por hora
 ];
 
 const MAX_BODY_BYTES = 4 * 1024;
@@ -111,19 +112,26 @@ export async function POST(
     return json({ ok: false, error: "Ingresá tu nombre y apellido." }, 400);
   }
 
+  // El celular es opcional (una web que consulta el padrón sólo tiene la
+  // cédula), pero si viene tiene que ser válido.
   const telefono = campo(campos, "telefono", "celular");
-  if (!celularValidoPY(telefono)) {
+  if (telefono && !celularValidoPY(telefono)) {
     return json({ ok: false, error: "Revisá tu celular — usá el formato 09xx xxx xxx." }, 400);
   }
 
   const cedula = campo(campos, "cedula", "numero_cedula").replace(/\D/g, "");
-  if (cedula && (cedula.length < 5 || cedula.length > 9)) {
+  if (cedula && (cedula.length < 4 || cedula.length > 9)) {
     return json({ ok: false, error: "Revisá tu número de cédula." }, 400);
+  }
+
+  // Sólo con el nombre no hay forma de contactar ni de reconocer a la persona.
+  if (!telefono && !cedula) {
+    return json({ ok: false, error: "Ingresá tu celular o tu número de cédula." }, 400);
   }
 
   await crearVotanteWeb(dirigente, {
     nombre,
-    telefono: normalizarCelular(telefono),
+    telefono: telefono ? normalizarCelular(telefono) : null,
     numero_cedula: cedula || null,
     barrio: campo(campos, "barrio") || null,
     ciudad: campo(campos, "ciudad") || null,

@@ -37,7 +37,7 @@ ${curl}
 
 Requisitos:
 - Hacé el envío con fetch (POST, Content-Type: application/json) desde el navegador; el endpoint acepta CORS desde cualquier dominio y no necesita API key.
-- Campos: "nombre" (obligatorio, nombre y apellido), "telefono" (obligatorio, celular paraguayo 09xx xxx xxx), "cedula" (opcional, solo números), "barrio" y "ciudad" (opcionales).
+- Campos: "nombre" (obligatorio, nombre y apellido), "telefono" (celular paraguayo 09xx xxx xxx) y "cedula" (solo números): opcionales, pero mandá al menos uno de los dos; "barrio" y "ciudad" (opcionales).
 - Respuestas: 201 {"ok":true} = listo, mostrá un mensaje de gracias; 400/404 {"ok":false,"error":"..."} = mostrá el texto de "error"; 429 = demasiados envíos, pedí que prueben más tarde.
 - Deshabilitá el botón mientras se envía para evitar envíos duplicados.
 - Que respete el diseño actual de mi web y se vea bien en celular.`;
@@ -126,9 +126,9 @@ Requisitos:
           </div>
 
           <p className="text-xs text-muted">
-            Obligatorios: <b>nombre</b> y <b>telefono</b> (09xx xxx xxx). Opcionales: cedula,
-            barrio y ciudad. Por seguridad, cada conexión puede cargar hasta 5 votantes por
-            minuto y 30 por hora.
+            Obligatorios: <b>nombre</b> y al menos uno entre <b>telefono</b> (09xx xxx xxx) y{" "}
+            <b>cedula</b>. Opcionales: barrio y ciudad. Por seguridad, cada conexión puede cargar
+            hasta 20 votantes por minuto y 120 por hora.
           </p>
         </div>
       )}

@@ -514,7 +514,7 @@ export async function crearApoyoPublico(
 
 export interface DatosVotanteWeb {
   nombre: string;
-  telefono: string;
+  telefono: string | null;
   numero_cedula: string | null;
   barrio: string | null;
   ciudad: string | null;

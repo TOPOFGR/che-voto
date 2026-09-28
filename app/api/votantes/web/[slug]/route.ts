@@ -111,19 +111,26 @@ export async function POST(
     return json({ ok: false, error: "Ingresá tu nombre y apellido." }, 400);
   }
 
+  // El celular es opcional (una web que consulta el padrón sólo tiene la
+  // cédula), pero si viene tiene que ser válido.
   const telefono = campo(campos, "telefono", "celular");
-  if (!celularValidoPY(telefono)) {
+  if (telefono && !celularValidoPY(telefono)) {
     return json({ ok: false, error: "Revisá tu celular — usá el formato 09xx xxx xxx." }, 400);
   }
 
   const cedula = campo(campos, "cedula", "numero_cedula").replace(/\D/g, "");
-  if (cedula && (cedula.length < 5 || cedula.length > 9)) {
+  if (cedula && (cedula.length < 4 || cedula.length > 9)) {
     return json({ ok: false, error: "Revisá tu número de cédula." }, 400);
+  }
+
+  // Sólo con el nombre no hay forma de contactar ni de reconocer a la persona.
+  if (!telefono && !cedula) {
+    return json({ ok: false, error: "Ingresá tu celular o tu número de cédula." }, 400);
   }
 
   await crearVotanteWeb(dirigente, {
     nombre,
-    telefono: normalizarCelular(telefono),
+    telefono: telefono ? normalizarCelular(telefono) : null,
     numero_cedula: cedula || null,
     barrio: campo(campos, "barrio") || null,
     ciudad: campo(campos, "ciudad") || null,
